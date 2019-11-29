@@ -6,6 +6,7 @@ from signals import Signals, DragInfo
 from painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
 from painterbasic.subdivsphere import Sphere
 from painterbasic.glhelp import GLEntityType
+from OpenGL import GL
 
 
 class BasicPainter(Painter):
@@ -29,14 +30,14 @@ class BasicPainter(Painter):
         self.gengeometry()
 
     def gengeometry(self):
-        curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
+        curSphere = Sphere(0, 0, 0, 2)  # pass X, Y, Z, radius
         self.spheres.append(curSphere)
-        curSphere = Sphere(1.5, -1.5, 0, 2)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 2, 8, 0.4)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 1, 2, 0.4)
-        self.spheres.append(curSphere)
+        # curSphere = Sphere(1.5, -1.5, 0, 2)
+        # self.spheres.append(curSphere)
+        # curSphere = Sphere(1, 2, 8, 0.4)
+        # self.spheres.append(curSphere)
+        # curSphere = Sphere(1, 1, 2, 0.4)
+        # self.spheres.append(curSphere)
 
         self.resetmodel()
         self.initnewdictitem("sphere", GLEntityType.TRIA)
@@ -69,6 +70,11 @@ class BasicPainter(Painter):
 
     def initializeGL(self):
         self.glf.initializeOpenGLFunctions()
+
+        self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        self.glf.glEnable(GL.GL_DEPTH_TEST)
+        self.glf.glDisable(GL.GL_CULL_FACE)
+
         self.glf.glClearColor(0.0, 0.0, 0.0, 1)
 
         for key, value in self._dentsvertsdata.items():
