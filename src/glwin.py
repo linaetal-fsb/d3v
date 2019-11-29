@@ -1,10 +1,9 @@
 from PySide2.QtWidgets import QOpenGLWidget
-from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QVector4D, QQuaternion
-from PySide2.QtCore import QObject, QRect, QPoint, QSize, Signal, Slot
-from PySide2.Qt3DCore import Qt3DCore
+from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion
+from PySide2.QtCore import QRect, Slot
 
 from signals import Signals, DragInfo
-from pyD3VBasicPainter import BasicPainter
+from painterbasic.basicpainter import BasicPainter
 
 
 class GlWin(QOpenGLWidget):
