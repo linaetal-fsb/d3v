@@ -1,16 +1,22 @@
 from PySide2.QtCore import Slot
 from PySide2.QtGui import QOpenGLShaderProgram, QOpenGLShader
-
+from PySide2.QtGui import QSurfaceFormat
 from painters import Painter
 from signals import Signals, DragInfo
 from painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
 from painterbasic.subdivsphere import Sphere
 from painterbasic.glhelp import GLEntityType
 from OpenGL import GL
-
+from PySide2.QtCore import QCoreApplication
 
 class BasicPainter(Painter):
     def __init__(self):
+
+        # self.fmt = QSurfaceFormat()
+        # self.fmt.setDepthBufferSize(24)
+        # QSurfaceFormat.setDefaultFormat(self.fmt)
+
+        print("Args", QCoreApplication.arguments())
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
         Painter.__init__(self)
         Signals.get().dragging.connect(self.bgchanger)
@@ -71,10 +77,6 @@ class BasicPainter(Painter):
     def initializeGL(self):
         self.glf.initializeOpenGLFunctions()
 
-        self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        self.glf.glEnable(GL.GL_DEPTH_TEST)
-        self.glf.glDisable(GL.GL_CULL_FACE)
-
         self.glf.glClearColor(0.0, 0.0, 0.0, 1)
 
         for key, value in self._dentsvertsdata.items():
@@ -106,6 +108,10 @@ class BasicPainter(Painter):
         self.program.release()
 
     def paintGL(self):
+        self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        self.glf.glEnable(GL.GL_DEPTH_TEST)
+        self.glf.glEnable(GL.GL_CULL_FACE)
+
         self.program.bind()
         for key, value in self._dentsvertsdata.items():
             value.drawvao(self.glf)

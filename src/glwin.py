@@ -27,7 +27,7 @@ class GlWin(QOpenGLWidget):
         # self.mv.translate(-self.eye)
 
         for p in self.glPainters:
-            p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(70, 70, 0))
+            p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
 
         for p in self.glPainters:
             p.paintGL()
