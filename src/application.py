@@ -4,6 +4,7 @@ from PySide2.QtCore import QSettings, QCommandLineParser, QCommandLineOption
 import sys
 import os
 import moduleImporter as importer
+from signals import Signals
 
 class App(QApplication):
     def __init__(self,argv):
@@ -11,6 +12,7 @@ class App(QApplication):
         self.setApplicationVersion("0.1")
         self.setOrganizationName("testung")
         self.setApplicationName("d3v")
+        Signals.get().geometryImported.connect(self.registerGeometry)
 
 # hardcoded path
 #        defModulesPaths = os.path.join(self.applicationDirPath(), 'modules')
@@ -32,6 +34,10 @@ class App(QApplication):
 
     def run(self):
         self.loadAllModules()
+
+        for m in self.models:
+            Signals.get().importGeometry.emit(m)
+
         return self.exec_()
 
 
@@ -48,9 +54,10 @@ class App(QApplication):
         self.iohandlers = []
         self.commands = []
         self.painters = []
+        self.geometry = []
 
-        self.loadCommands(modules2load[2])
-        self.loadIOHandlers(modules2load[1])
+        self.loadCommands(modules2load[1])
+        self.loadIOHandlers(modules2load[2])
         self.loadPainters(modules2load[3])
 
     def parseArguments(self,argv):
@@ -93,7 +100,6 @@ class App(QApplication):
                 self.settings.setValue('modules/paths/default-path', parser.value(rpath))
 
         self.models = parser.positionalArguments()
-
 
     def loadIOHandlers(self, iohandlers2load):
         for h in iohandlers2load:
@@ -138,7 +144,7 @@ class App(QApplication):
                     iopath = os.path.join(mPath, m)
                     res = self.findAllPossibleModules([iopath])
                     if res[0]:
-                        io.append(res[0])
+                        io.extend(res[0])
                     continue
 
                 general.append(mfname)
@@ -154,3 +160,6 @@ class App(QApplication):
     def registerPainter(self, painter):
         self.painters.append(painter)
 
+    def registerGeometry(self, geometry):
+        self.geometry.append(geometry)
+        Signals.get().geometryAdded.emit(geometry)

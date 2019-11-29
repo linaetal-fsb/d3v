@@ -3,7 +3,7 @@ import os
 import importlib.util
 
 
-def importModule(moduleFileName):
+def importModule(moduleFileName:str):
     moduleName = os.path.splitext(moduleFileName)[0]
     spec = importlib.util.spec_from_file_location(moduleName, moduleFileName)
     module = importlib.util.module_from_spec(spec)
@@ -14,12 +14,13 @@ def importModule(moduleFileName):
 
 
 
-def loadIOHandler(app, iohandler2load):
+def importIOHandler(app, iohandler2load):
     try:
         h = importModule(iohandler2load)
         app.registerIOHandler(h.createIOHandler())
-    except e:
-        pass
+
+    except FileNotFoundError as err:
+        print("Folder '{}' not found ".format(err.filename))
 
 
 def importCommand(app, command2load):
