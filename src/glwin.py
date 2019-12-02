@@ -48,7 +48,7 @@ class GlWin(QOpenGLWidget):
 
         ratio = float(w)/float(h)
         self.proj = QMatrix4x4()
-        self.proj.ortho(-10*ratio,10*ratio,-10,10,-10,10)
+        self.proj.ortho(-10*ratio,10*ratio,-10,10,-100,100)
 
         for p in self.glPainters:
             p.resizeGL(w,h)

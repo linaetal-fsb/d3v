@@ -36,14 +36,14 @@ class BasicPainter(Painter):
         self.gengeometry()
 
     def gengeometry(self):
-        curSphere = Sphere(0, 0, 0, 2)  # pass X, Y, Z, radius
+        curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
         self.spheres.append(curSphere)
-        # curSphere = Sphere(1.5, -1.5, 0, 2)
-        # self.spheres.append(curSphere)
-        # curSphere = Sphere(1, 2, 8, 0.4)
-        # self.spheres.append(curSphere)
-        # curSphere = Sphere(1, 1, 2, 0.4)
-        # self.spheres.append(curSphere)
+        curSphere = Sphere(1.5, -1.5, 0, 1)
+        self.spheres.append(curSphere)
+        curSphere = Sphere(1, 2, 8, 0.4)
+        self.spheres.append(curSphere)
+        curSphere = Sphere(1, 1, 2, 0.4)
+        self.spheres.append(curSphere)
 
         self.resetmodel()
         self.initnewdictitem("sphere", GLEntityType.TRIA)
