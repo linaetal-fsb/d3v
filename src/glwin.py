@@ -79,7 +79,6 @@ class GlWin(QOpenGLWidget):
     @Slot()
     def onDrag(self, di:DragInfo):
         d = di.normalizedDelta
-        print(d)
         #[-1:1] --> 2*[-pi:pi]
         self.phi = 2.0 * ((d.y() + 1.0) * 3.14 - 3.14)
         self.theta = 2.0 * ((d.x() + 1.0) * 3.14 - 3.14)

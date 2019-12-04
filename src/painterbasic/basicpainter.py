@@ -8,15 +8,14 @@ from painterbasic.subdivsphere import Sphere
 from painterbasic.glhelp import GLEntityType
 from OpenGL import GL
 from PySide2.QtCore import QCoreApplication
-
+from geometry import Geometry
+import openmesh as om
 class BasicPainter(Painter):
     def __init__(self):
 
         # self.fmt = QSurfaceFormat()
         # self.fmt.setDepthBufferSize(24)
         # QSurfaceFormat.setDefaultFormat(self.fmt)
-
-        print("Args", QCoreApplication.arguments())
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
         Painter.__init__(self)
         Signals.get().dragging.connect(self.bgchanger)
@@ -84,10 +83,10 @@ class BasicPainter(Painter):
 
         self.program.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexShader)
         self.program.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentShader)
-
-        atrList = self._dentsvertsdata[list(self._dentsvertsdata.keys())[0]].GetAtrList()
-        for ent in atrList:
-            self.program.bindAttributeLocation(ent[0], ent[1])
+        if len(self._dentsvertsdata) > 0:
+            atrList = self._dentsvertsdata[list(self._dentsvertsdata.keys())[0]].GetAtrList()
+            for ent in atrList:
+                self.program.bindAttributeLocation(ent[0], ent[1])
 
         self.program.link()
         self.program.bind()
@@ -237,5 +236,35 @@ class BasicPainter(Painter):
                    highp vec3 col = clamp(colorV.rgb * 0.2 + colorV.rgb * 0.8 * NL, 0.0, 1.0);
                    gl_FragColor = vec4(col, colorV.a);
                 }"""
+    def addGeometry(self, geometry:Geometry):
+        self.resetmodel()
+        self.initnewdictitem("mesh", GLEntityType.TRIA)
+        nf = geometry.mesh.n_faces()
+        self.appenddictitemsize("mesh", nf)
+        self.allocatememory()
+        self.addMeshdata4oglmdl(geometry)
+
+    def addMeshdata4oglmdl(self, geometry):
+        mesh = geometry.mesh
+        nf = mesh.n_faces()
+        verts = mesh.vertices()
+        mesh.update_vertex_normals()
+        for fh in mesh.faces():
+            for vh in mesh.fv(fh): #vertex handle
+                vit=mesh.vv(vh) # iterator
+                p=mesh.point(vh)
+                n=mesh.normal(vh)
+                c=mesh.color(vh)
+                c=[0.39, 1.0, 1.0,1.0]
+                iv=0
+                self.appendlistdata_f3xyzf3nf4rgba("mesh",
+                    p[0], p[1], p[2],
+                    n[0], n[1], n[2],
+                    c[0], c[1], c[2],c[3])
+        for key, value in self._dentsvertsdata.items():
+            value.setupVertexAttribs(self.glf)
+        self.updateGL()
+        #self.initializeGL()
+
 # ********************************************************************
 #gl_FragColor = colorV;
