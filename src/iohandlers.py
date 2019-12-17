@@ -1,7 +1,6 @@
 from commands import Command
-from geometry import Geometry
 
-class IOHandler(Command)
+class IOHandler(Command):
     def __init__(self):
         super().__init__()
 

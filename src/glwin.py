@@ -38,6 +38,7 @@ class GlWin(QOpenGLWidget):
         Signals.get().updateGL.connect(self.updateGL)
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
+        Signals.get().geometryAdded.connect(self.onGeometryAdded)
 
         for p in self.glPainters:
             p.initializeGL()
@@ -96,6 +97,11 @@ class GlWin(QOpenGLWidget):
     @Slot()
     def onDragEnd(self, di:DragInfo):
         self.onDrag(di)
+
+    @Slot()
+    def onGeometryAdded(self, geometry):
+        for p in self.glPainters:
+            p.addGeometry(geometry)
 
 
 def rotation(m:QMatrix4x4):
