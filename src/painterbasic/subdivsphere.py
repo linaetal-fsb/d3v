@@ -11,7 +11,7 @@ class Sphere:
         """
         super().__init__()
         self.radius = radious
-        self.subdivision = 4
+        self.subdivision = 1
         self.X = x
         self.Y = y
         self.Z = z

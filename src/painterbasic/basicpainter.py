@@ -10,6 +10,7 @@ from OpenGL import GL
 from PySide2.QtCore import QCoreApplication
 from geometry import Geometry
 import openmesh as om
+import numpy as np
 class BasicPainter(Painter):
     def __init__(self):
 
@@ -32,7 +33,8 @@ class BasicPainter(Painter):
 
         # model / geometry
         self.spheres = []
-        self.gengeometry()
+        #self.gengeometry()
+        self.genomGeometry()
 
     def gengeometry(self):
         curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
@@ -243,9 +245,12 @@ class BasicPainter(Painter):
         self.appenddictitemsize("mesh", nf)
         self.allocatememory()
         self.addMeshdata4oglmdl(geometry)
-
+        for key, value in self._dentsvertsdata.items():
+            value.setupVertexAttribs(self.glf)
+        self.updateGL()
     def addMeshdata4oglmdl(self, geometry):
         mesh = geometry.mesh
+        mesh.request_face_normals()
         nf = mesh.n_faces()
         verts = mesh.vertices()
         mesh.update_vertex_normals()
@@ -261,10 +266,72 @@ class BasicPainter(Painter):
                     p[0], p[1], p[2],
                     n[0], n[1], n[2],
                     c[0], c[1], c[2],c[3])
+    def genomGeometry(self):
+        self.spheres.clear()
+        curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
+        self.spheres.append(curSphere)
+        curSphere = Sphere(1.5, -1.5, 0, 1)
+        self.spheres.append(curSphere)
+        curSphere = Sphere(1, 2, 8, 0.4)
+        self.spheres.append(curSphere)
+        curSphere = Sphere(1, 1, 2, 0.4)
+        self.spheres.append(curSphere)
+        self.resetmodel()
+        self.initnewdictitem("mesh", GLEntityType.TRIA)
+        mesh = om.TriMesh()
+        mesh.request_vertex_normals()
+        mesh.request_vertex_colors()
+        vhandle = []
+        fhandle = []
+        for isp in range(0,len(self.spheres)):
+            nt = self.spheres[isp].getnumtria()
+            for i in range(0, nt):  # interate through all of the triangles
+                iimin = i * 3
+                iimax = iimin + 3
+                i=0
+                vhandle.clear()
+                fhandle.clear()
+                for ii in range(iimin, iimax):
+                    iv = self.spheres[isp].indices[ii] * 3  # each vertex has xyz
+                    ic = self.spheres[isp].indices[ii] * 4  # each vertex has xyz
+                    sph=self.spheres[isp]
+
+                    vhandle.append(mesh.add_vertex(np.array([sph.vertices[iv],
+                                                                 sph.vertices[iv+1],
+                                                                 sph.vertices[iv+2]])))
+                    mesh.set_vertex_property('color', vhandle[i], [sph.colors[ic],
+                                                                   sph.colors[ic + 1],
+                                                                   sph.colors[ic + 2]])
+                    mesh.set_vertex_property('normal', vhandle[i], [sph.normals[iv],
+                                                                   sph.normals[iv + 1],
+                                                                   sph.normals[iv + 2]])
+                    fhandle.append(vhandle[i])
+                    i = i + 1
+                mesh.add_face(fhandle)
+                # self.appendlistdata_f3xyzf3nf4rgba("sphere",
+                #         sph.vertices[iv],sph.vertices[iv + 1],sph.vertices[iv + 2],
+                #         sph.normals[iv], sph.normals[iv + 1], sph.normals[iv + 2],
+                #         sph.colors[ic], sph.colors[ic + 1], sph.colors[ic + 2],sph.colors[ic + 3])
+        nf = mesh.n_faces()
+        self.appenddictitemsize("mesh", nf)
+        self.allocatememory()
+        self.genomMeshdata4oglmdl(mesh)
         for key, value in self._dentsvertsdata.items():
             value.setupVertexAttribs(self.glf)
         self.updateGL()
-        #self.initializeGL()
-
-# ********************************************************************
-#gl_FragColor = colorV;
+    def genomMeshdata4oglmdl(self, mesh):
+        nf = mesh.n_faces()
+        verts = mesh.vertices()
+        mesh.update_vertex_normals()
+        for fh in mesh.faces():
+            for vh in mesh.fv(fh): #vertex handle
+                vit=mesh.vv(vh) # iterator
+                p=mesh.point(vh)
+                n=mesh.normal(vh)
+                c=mesh.color(vh)
+                c=[0.39, 1.0, 1.0,1.0]
+                iv=0
+                self.appendlistdata_f3xyzf3nf4rgba("mesh",
+                    p[0], p[1], p[2],
+                    n[0], n[1], n[2],
+                    c[0], c[1], c[2],c[3])
