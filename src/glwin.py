@@ -1,10 +1,9 @@
 from PySide2.QtWidgets import QOpenGLWidget
-from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QVector4D, QQuaternion
-from PySide2.QtCore import QObject, QRect, QPoint, QSize, Signal, Slot
-from PySide2.Qt3DCore import Qt3DCore
+from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion
+from PySide2.QtCore import QRect, Slot
 
 from signals import Signals, DragInfo
-from pyD3VBasicPainter import BasicPainter
+from painterbasic.basicpainter import BasicPainter
 
 
 class GlWin(QOpenGLWidget):
@@ -28,7 +27,7 @@ class GlWin(QOpenGLWidget):
         # self.mv.translate(-self.eye)
 
         for p in self.glPainters:
-            p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(70, 70, 0))
+            p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
 
         for p in self.glPainters:
             p.paintGL()
@@ -49,7 +48,7 @@ class GlWin(QOpenGLWidget):
 
         ratio = float(w)/float(h)
         self.proj = QMatrix4x4()
-        self.proj.ortho(-10*ratio,10*ratio,-10,10,-10,10)
+        self.proj.ortho(-10*ratio,10*ratio,-10,10,-100,100)
 
         for p in self.glPainters:
             p.resizeGL(w,h)
@@ -80,7 +79,6 @@ class GlWin(QOpenGLWidget):
     @Slot()
     def onDrag(self, di:DragInfo):
         d = di.normalizedDelta
-        print(d)
         #[-1:1] --> 2*[-pi:pi]
         self.phi = 2.0 * ((d.y() + 1.0) * 3.14 - 3.14)
         self.theta = 2.0 * ((d.x() + 1.0) * 3.14 - 3.14)
