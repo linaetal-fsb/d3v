@@ -20,12 +20,7 @@ class BasicPainter(Painter):
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
         Painter.__init__(self)
         Signals.get().dragging.connect(self.bgchanger)
-        self.program = QOpenGLShaderProgram()
-        #self.vertexShader = self.vertexShaderSourceCore()
-        #self.fragmentShader = self.fragmentShaderSourceCore()
-        self.vertexShader = self.vertexShaderSource()
-        self.fragmentShader = self.fragmentShaderSource()
-        #self.core = "--coreprofile" in QCoreApplication.arguments()
+        self.program = 0
         self.projMatrixLoc = 0
         self.mvMatrixLoc = 0
         self.normalMatrixLoc = 0
@@ -34,7 +29,7 @@ class BasicPainter(Painter):
         # model / geometry
         self.spheres = []
         #self.gengeometry()
-        self.genomGeometry()
+        #self.genomGeometry()
 
     def gengeometry(self):
         curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
@@ -76,8 +71,13 @@ class BasicPainter(Painter):
         pass
 
     def initializeGL(self):
+        self.program = QOpenGLShaderProgram()
+        # self.vertexShader = self.vertexShaderSourceCore()
+        # self.fragmentShader = self.fragmentShaderSourceCore()
+        self.vertexShader = self.vertexShaderSource()
+        self.fragmentShader = self.fragmentShaderSource()
+        # self.core = "--coreprofile" in QCoreApplication.arguments()
         self.glf.initializeOpenGLFunctions()
-
         self.glf.glClearColor(0.0, 0.0, 0.0, 1)
 
         for key, value in self._dentsvertsdata.items():
@@ -239,6 +239,7 @@ class BasicPainter(Painter):
                    gl_FragColor = vec4(col, colorV.a);
                 }"""
     def addGeometry(self, geometry:Geometry):
+        #return
         self.resetmodel()
         self.initnewdictitem("mesh", GLEntityType.TRIA)
         nf = geometry.mesh.n_faces()
@@ -247,10 +248,10 @@ class BasicPainter(Painter):
         self.addMeshdata4oglmdl(geometry)
         for key, value in self._dentsvertsdata.items():
             value.setupVertexAttribs(self.glf)
-        self.updateGL()
+        #self.updateGL()
     def addMeshdata4oglmdl(self, geometry):
         mesh = geometry.mesh
-        mesh.request_face_normals()
+        #mesh.request_face_normals()
         nf = mesh.n_faces()
         verts = mesh.vertices()
         mesh.update_vertex_normals()
@@ -270,44 +271,44 @@ class BasicPainter(Painter):
         self.spheres.clear()
         curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
         self.spheres.append(curSphere)
-        curSphere = Sphere(1.5, -1.5, 0, 1)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 2, 8, 0.4)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 1, 2, 0.4)
-        self.spheres.append(curSphere)
+        # curSphere = Sphere(1.5, -1.5, 0, 1)
+        # self.spheres.append(curSphere)
+        # curSphere = Sphere(1, 2, 8, 0.4)
+        # self.spheres.append(curSphere)
+        # curSphere = Sphere(1, 1, 2, 0.4)
+        # self.spheres.append(curSphere)
         self.resetmodel()
         self.initnewdictitem("mesh", GLEntityType.TRIA)
         mesh = om.TriMesh()
-        mesh.request_vertex_normals()
-        mesh.request_vertex_colors()
-        vhandle = []
+#        mesh.request_vertex_normals()
+#        mesh.request_vertex_colors()
+        vhandles = []
+        fhandles = []
         fhandle = []
+        i = 0
         for isp in range(0,len(self.spheres)):
             nt = self.spheres[isp].getnumtria()
             for i in range(0, nt):  # interate through all of the triangles
                 iimin = i * 3
                 iimax = iimin + 3
-                i=0
-                vhandle.clear()
                 fhandle.clear()
                 for ii in range(iimin, iimax):
                     iv = self.spheres[isp].indices[ii] * 3  # each vertex has xyz
                     ic = self.spheres[isp].indices[ii] * 4  # each vertex has xyz
                     sph=self.spheres[isp]
+                    data=np.array([sph.vertices[iv], sph.vertices[iv+1], sph.vertices[iv+2]])
+                    vhandles.append(mesh.add_vertex(data))
+                    # mesh.set_vertex_property('color', vhandles[i], [sph.colors[ic],
+                    #                                                sph.colors[ic + 1],
+                    #                                                sph.colors[ic + 2]])
+                    # mesh.set_vertex_property('normal', vhandles[i], [sph.normals[iv],
+                    #                                                sph.normals[iv + 1],
+                    #                                                sph.normals[iv + 2]])
+                    fhandle.append(vhandles[i])
 
-                    vhandle.append(mesh.add_vertex(np.array([sph.vertices[iv],
-                                                                 sph.vertices[iv+1],
-                                                                 sph.vertices[iv+2]])))
-                    mesh.set_vertex_property('color', vhandle[i], [sph.colors[ic],
-                                                                   sph.colors[ic + 1],
-                                                                   sph.colors[ic + 2]])
-                    mesh.set_vertex_property('normal', vhandle[i], [sph.normals[iv],
-                                                                   sph.normals[iv + 1],
-                                                                   sph.normals[iv + 2]])
-                    fhandle.append(vhandle[i])
                     i = i + 1
-                mesh.add_face(fhandle)
+                fhandles.append(fhandle)
+                print(mesh.add_face(fhandle))
                 # self.appendlistdata_f3xyzf3nf4rgba("sphere",
                 #         sph.vertices[iv],sph.vertices[iv + 1],sph.vertices[iv + 2],
                 #         sph.normals[iv], sph.normals[iv + 1], sph.normals[iv + 2],
@@ -318,7 +319,7 @@ class BasicPainter(Painter):
         self.genomMeshdata4oglmdl(mesh)
         for key, value in self._dentsvertsdata.items():
             value.setupVertexAttribs(self.glf)
-        self.updateGL()
+        #self.updateGL()
     def genomMeshdata4oglmdl(self, mesh):
         nf = mesh.n_faces()
         verts = mesh.vertices()
