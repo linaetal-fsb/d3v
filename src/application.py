@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication
+from PySide2.QtWidgets import QApplication, QMessageBox
 from PySide2.QtCore import QSettings, QCommandLineParser, QCommandLineOption
 
 import sys
@@ -130,7 +130,7 @@ class App(QApplication):
                     cpath = os.path.join(mPath, m)
                     res = self.findAllPossibleModules([cpath])
                     if res[0]:
-                        commands.append(res[0])
+                        commands.extend(res[0])
                     continue
 
                 if m == 'painters' and os.path.isdir(mfname):
@@ -163,3 +163,18 @@ class App(QApplication):
     def registerGeometry(self, geometry):
         self.geometry.append(geometry)
         Signals.get().geometryAdded.emit(geometry)
+
+
+    def onImportGeometry(self, checked:bool):
+        QMessageBox.warning(None, "Import geometry", "Importing gemeoetry is not implemented")
+
+    def onExportGeometry(self, checked:bool):
+        QMessageBox.warning(None, "Export geometry", "Exporting gemeoetry is not implemented")
+
+    @property
+    def mainFrame(self):
+        return self._mainFrame
+
+    @mainFrame.setter
+    def mainFrame(self, mainFrame):
+        self._mainFrame = mainFrame

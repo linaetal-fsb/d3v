@@ -10,7 +10,7 @@ class Painter(Command):
         self.glf=QOpenGLFunctions()
 
     def updateGL(self):
-        Signals.updateGL.emit()
+        Signals.get().updateGL.emit()
 
     def paintGL(self):
         pass

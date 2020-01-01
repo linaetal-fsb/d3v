@@ -1,5 +1,5 @@
 from PySide2.QtWidgets import QOpenGLWidget
-from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion
+from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpenGLDebugLogger, QOpenGLDebugMessage
 from PySide2.QtCore import QRect, Slot
 
 from signals import Signals, DragInfo
@@ -26,6 +26,8 @@ class GlWin(QOpenGLWidget):
         # self.mv.rotate(self.phi * 57.3, 1.0, 0.0, 0.0) # rotation about X
         # self.mv.translate(-self.eye)
 
+
+
         for p in self.glPainters:
             p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
 
@@ -34,6 +36,11 @@ class GlWin(QOpenGLWidget):
 
 
     def initializeGL(self):
+        self._glLogger = QOpenGLDebugLogger(self)
+        self._glLogger.initialize()
+        self._glLogger.messageLogged.connect(self.showGlDebugMessage)
+        self._glLogger.startLogging()
+
         Signals.get().updateGL.connect(self.updateGL)
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
@@ -100,6 +107,11 @@ class GlWin(QOpenGLWidget):
     def onGeometryAdded(self, geometry):
         for p in self.glPainters:
             p.addGeometry(geometry)
+
+
+    @Slot()
+    def showGlDebugMessage(self, msg:QOpenGLDebugMessage):
+        print(msg.message())
 
 
 def rotation(m:QMatrix4x4):
