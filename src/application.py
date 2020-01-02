@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QMessageBox
+from PySide2.QtWidgets import QApplication, QMessageBox, QFileDialog
 from PySide2.QtCore import QSettings, QCommandLineParser, QCommandLineOption
 
 import sys
@@ -166,7 +166,12 @@ class App(QApplication):
 
 
     def onImportGeometry(self, checked:bool):
-        QMessageBox.warning(None, "Import geometry", "Importing gemeoetry is not implemented")
+        dir = self.settings.value("io/lastImportLocation", ".")
+        fname = QFileDialog.getOpenFileName(None, "Import Geometry", dir)
+        if fname[0]:
+            dir = os.path.dirname(fname[0])
+            self.settings.setValue("io/lastImportLocation", dir)
+            Signals.get().importGeometry.emit(fname[0])
 
     def onExportGeometry(self, checked:bool):
         QMessageBox.warning(None, "Export geometry", "Exporting gemeoetry is not implemented")
