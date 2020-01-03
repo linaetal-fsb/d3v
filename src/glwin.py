@@ -36,6 +36,7 @@ class GlWin(QOpenGLWidget):
 
 
     def initializeGL(self):
+        self._glDebugCounter = 0
         self._glLogger = QOpenGLDebugLogger(self)
         self._glLogger.initialize()
         self._glLogger.messageLogged.connect(self.showGlDebugMessage)
@@ -111,7 +112,9 @@ class GlWin(QOpenGLWidget):
 
     @Slot()
     def showGlDebugMessage(self, msg:QOpenGLDebugMessage):
-        print(msg.message())
+        self._glDebugCounter += 1
+        print("{:3}: {}".format(self._glDebugCounter, msg.message()))
+
 
 
 def rotation(m:QMatrix4x4):
