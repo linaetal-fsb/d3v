@@ -30,7 +30,7 @@ def importCommand(app, command2load):
 
     except FileNotFoundError as err:
         print("Folder '{}' not found ".format(err.filename))
-    except e:
+    except:
         pass
 
 
