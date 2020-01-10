@@ -1,103 +1,57 @@
 from PySide2.QtCore import Slot
 from PySide2.QtGui import QOpenGLShaderProgram, QOpenGLShader
+from PySide2.QtGui import QOpenGLVersionProfile, QOpenGLContext
 from PySide2.QtGui import QSurfaceFormat
+from PySide2.QtWidgets import QMessageBox
 from painters import Painter
 from signals import Signals, DragInfo
 from painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
-from painterbasic.subdivsphere import Sphere
 from painterbasic.glhelp import GLEntityType
 from OpenGL import GL
 from PySide2.QtCore import QCoreApplication
 from geometry import Geometry
 import openmesh as om
 import numpy as np
+
+
 class BasicPainter(Painter):
     def __init__(self):
-
-        # self.fmt = QSurfaceFormat()
-        # self.fmt.setDepthBufferSize(24)
-        # QSurfaceFormat.setDefaultFormat(self.fmt)
+        super().__init__()
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
-        Painter.__init__(self)
-        Signals.get().dragging.connect(self.bgchanger)
-        self.program = QOpenGLShaderProgram()
-        #self.vertexShader = self.vertexShaderSourceCore()
-        #self.fragmentShader = self.fragmentShaderSourceCore()
-        self.vertexShader = self.vertexShaderSource()
-        self.fragmentShader = self.fragmentShaderSource()
-        #self.core = "--coreprofile" in QCoreApplication.arguments()
+        self._geo2Add = []
+        self.program = 0
         self.projMatrixLoc = 0
         self.mvMatrixLoc = 0
         self.normalMatrixLoc = 0
         self.lightPosLoc = 0
-
+        # self.vertexShader = self.vertexShaderSourceCore()
+        # self.fragmentShader = self.fragmentShaderSourceCore()
+        self.vertexShader = self.vertexShaderSource()
+        self.fragmentShader = self.fragmentShaderSource()
         # model / geometry
-        self.spheres = []
-        #self.gengeometry()
-        self.genomGeometry()
-
-    def gengeometry(self):
-        curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1.5, -1.5, 0, 1)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 2, 8, 0.4)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 1, 2, 0.4)
-        self.spheres.append(curSphere)
-
-        self.resetmodel()
-        self.initnewdictitem("sphere", GLEntityType.TRIA)
-
-        for i in range(0,len(self.spheres)):
-            self.appenddictitemsize("sphere", self.spheres[i].getnumtria())
-
-        self.allocatememory()
-        self.adddata4oglmdl()
-
-    def adddata4oglmdl(self):
-
-        for isp in range(0,len(self.spheres)):
-            nt = self.spheres[isp].getnumtria()
-            for i in range(0, nt):  # interate through all of the triangles
-                iimin = i * 3
-                iimax = iimin + 3
-                for ii in range(iimin, iimax):
-                    iv = self.spheres[isp].indices[ii] * 3  # each vertex has xyz
-                    ic = self.spheres[isp].indices[ii] * 4  # each vertex has xyz
-                    sph=self.spheres[isp]
-                    # self.appendlistdata_f3xyzf3n("sphere",
-                    #     sph.vertices[iv],sph.vertices[iv + 1],sph.vertices[iv + 2],
-                    #     sph.normals[iv], sph.normals[iv + 1], sph.normals[iv + 2])
-                    self.appendlistdata_f3xyzf3nf4rgba("sphere",
-                        sph.vertices[iv],sph.vertices[iv + 1],sph.vertices[iv + 2],
-                        sph.normals[iv], sph.normals[iv + 1], sph.normals[iv + 2],
-                        sph.colors[ic], sph.colors[ic + 1], sph.colors[ic + 2],sph.colors[ic + 3])
-        pass
+        self.addGeoCount=0
 
     def initializeGL(self):
+        super().initializeGL()
+        self.program = QOpenGLShaderProgram()
+        # profile = QOpenGLVersionProfile()
+        # profile.setVersion(2, 0)
+        #context = QOpenGLContext.currentContext()
+        #print("paintr init "+str(context))
+        # self.glf = context.versionFunctions(profile)
+        # if not self.glf:
+        #     QMessageBox.critical(None, "Failed to Initialize OpenGL",
+        #                          "Could not initialize OpenGL. This program requires OpenGL x.x or higher. Please check your video card drivers.")
         self.glf.initializeOpenGLFunctions()
-
         self.glf.glClearColor(0.0, 0.0, 0.0, 1)
-
-        for key, value in self._dentsvertsdata.items():
-            value.setupVertexAttribs(self.glf)
-
         self.program.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexShader)
         self.program.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentShader)
-        if len(self._dentsvertsdata) > 0:
-            atrList = self._dentsvertsdata[list(self._dentsvertsdata.keys())[0]].GetAtrList()
-            for ent in atrList:
-                self.program.bindAttributeLocation(ent[0], ent[1])
-
         self.program.link()
         self.program.bind()
-
         self.projMatrixLoc = self.program.uniformLocation("projMatrix")
         self.mvMatrixLoc = self.program.uniformLocation("mvMatrix")
         self.normalMatrixLoc = self.program.uniformLocation("normalMatrix")
         self.lightPosLoc = self.program.uniformLocation("lightPos")
-
         self.program.release()
 
     def setprogramvalues(self, proj, mv, normalMatrix, lightpos):
@@ -109,22 +63,22 @@ class BasicPainter(Painter):
         self.program.release()
 
     def paintGL(self):
+        self.updateGeometry()
+        super().paintGL()
         self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         self.glf.glEnable(GL.GL_DEPTH_TEST)
-        self.glf.glEnable(GL.GL_CULL_FACE)
-
+        #self.glf.glEnable(GL.GL_CULL_FACE)
+        self.glf.glDisable(GL.GL_CULL_FACE)
         self.program.bind()
         for key, value in self._dentsvertsdata.items():
             value.drawvao(self.glf)
         self.program.release()
 
     def resizeGL(self, w:int, h:int):
-        pass
+        super().resizeGL(w,h)
 
-    @Slot(DragInfo)
-    def bgchanger(self, di: DragInfo):
-
-        Signals.get().updateGL.emit()
+    def updateGL(self):
+        super().updateGL()
 
     def resetmodel(self):
         """!
@@ -177,6 +131,19 @@ class BasicPainter(Painter):
         """
         for key, value in self._dentsvertsdata.items():
             value.allocatememory()
+    def allocatememory(self,key):
+        """!
+        Allocate memory for all dictionary items that holds data for rendering
+
+        Allocation size is based on the information collected by client calls to appenddictitemsize()
+        """
+        self._dentsvertsdata[key].allocatememory()
+
+    def bindData(self, key):
+        self._dentsvertsdata[key].setupVertexAttribs(self.glf)
+        atrList = self._dentsvertsdata[key].GetAtrList()
+        for ent in atrList:
+            self.program.bindAttributeLocation(ent[0], ent[1])
 
 # Shader code ********************************************************
     def vertexShaderSourceCore(self):
@@ -195,7 +162,6 @@ class BasicPainter(Painter):
                    gl_Position = projMatrix * mvMatrix * vertex;
                    colorV = color;
                 }"""
-
     def fragmentShaderSourceCore(self):
         return """#version 150
                 in highp vec3 vert;
@@ -209,7 +175,6 @@ class BasicPainter(Painter):
                    highp vec3 col = clamp(colorV.rgb * 0.2 + colorV.rgb * 0.8 * NL, 0.0, 1.0);
                    fragColor = vec4(col, colorV.a);
                 }"""
-
     def vertexShaderSource(self):
         return """attribute vec4 vertex;
                 attribute vec3 normal;
@@ -226,7 +191,6 @@ class BasicPainter(Painter):
                    gl_Position = projMatrix * mvMatrix * vertex;
                    colorV = color;
                 }"""
-
     def fragmentShaderSource(self):
         return """varying highp vec3 vert;
                 varying highp vec3 vertNormal;
@@ -238,88 +202,34 @@ class BasicPainter(Painter):
                    highp vec3 col = clamp(colorV.rgb * 0.2 + colorV.rgb * 0.8 * NL, 0.0, 1.0);
                    gl_FragColor = vec4(col, colorV.a);
                 }"""
-    def addGeometry(self, geometry:Geometry):
-        self.resetmodel()
-        self.initnewdictitem("mesh", GLEntityType.TRIA)
-        nf = geometry.mesh.n_faces()
-        self.appenddictitemsize("mesh", nf)
-        self.allocatememory()
-        self.addMeshdata4oglmdl(geometry)
-        for key, value in self._dentsvertsdata.items():
-            value.setupVertexAttribs(self.glf)
-        self.updateGL()
-    def addMeshdata4oglmdl(self, geometry):
-        mesh = geometry.mesh
-        mesh.request_face_normals()
-        nf = mesh.n_faces()
-        verts = mesh.vertices()
-        mesh.update_vertex_normals()
-        for fh in mesh.faces():
-            for vh in mesh.fv(fh): #vertex handle
-                vit=mesh.vv(vh) # iterator
-                p=mesh.point(vh)
-                n=mesh.normal(vh)
-                c=mesh.color(vh)
-                c=[0.39, 1.0, 1.0,1.0]
-                iv=0
-                self.appendlistdata_f3xyzf3nf4rgba("mesh",
-                    p[0], p[1], p[2],
-                    n[0], n[1], n[2],
-                    c[0], c[1], c[2],c[3])
-    def genomGeometry(self):
-        self.spheres.clear()
-        curSphere = Sphere(0, 0, 0, 0.5)  # pass X, Y, Z, radius
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1.5, -1.5, 0, 1)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 2, 8, 0.4)
-        self.spheres.append(curSphere)
-        curSphere = Sphere(1, 1, 2, 0.4)
-        self.spheres.append(curSphere)
-        self.resetmodel()
-        self.initnewdictitem("mesh", GLEntityType.TRIA)
-        mesh = om.TriMesh()
-        mesh.request_vertex_normals()
-        mesh.request_vertex_colors()
-        vhandle = []
-        fhandle = []
-        for isp in range(0,len(self.spheres)):
-            nt = self.spheres[isp].getnumtria()
-            for i in range(0, nt):  # interate through all of the triangles
-                iimin = i * 3
-                iimax = iimin + 3
-                i=0
-                vhandle.clear()
-                fhandle.clear()
-                for ii in range(iimin, iimax):
-                    iv = self.spheres[isp].indices[ii] * 3  # each vertex has xyz
-                    ic = self.spheres[isp].indices[ii] * 4  # each vertex has xyz
-                    sph=self.spheres[isp]
 
-                    vhandle.append(mesh.add_vertex(np.array([sph.vertices[iv],
-                                                                 sph.vertices[iv+1],
-                                                                 sph.vertices[iv+2]])))
-                    mesh.set_vertex_property('color', vhandle[i], [sph.colors[ic],
-                                                                   sph.colors[ic + 1],
-                                                                   sph.colors[ic + 2]])
-                    mesh.set_vertex_property('normal', vhandle[i], [sph.normals[iv],
-                                                                   sph.normals[iv + 1],
-                                                                   sph.normals[iv + 2]])
-                    fhandle.append(vhandle[i])
-                    i = i + 1
-                mesh.add_face(fhandle)
-                # self.appendlistdata_f3xyzf3nf4rgba("sphere",
-                #         sph.vertices[iv],sph.vertices[iv + 1],sph.vertices[iv + 2],
-                #         sph.normals[iv], sph.normals[iv + 1], sph.normals[iv + 2],
-                #         sph.colors[ic], sph.colors[ic + 1], sph.colors[ic + 2],sph.colors[ic + 3])
-        nf = mesh.n_faces()
-        self.appenddictitemsize("mesh", nf)
-        self.allocatememory()
-        self.genomMeshdata4oglmdl(mesh)
-        for key, value in self._dentsvertsdata.items():
-            value.setupVertexAttribs(self.glf)
+# Painter methods implementation code ********************************************************
+
+    def addGeometry(self, geometry:Geometry):
+        self._geo2Add.append(geometry)
+
+    def delayedAddGeometry(self, geometry:Geometry):
+        self.addGeoCount= self.addGeoCount+1
+        key= "mesh_"+str(self.addGeoCount)
+        #self.resetmodel()
+        self.initnewdictitem(key, GLEntityType.TRIA)
+        nf = geometry.mesh.n_faces()
+        self.appenddictitemsize(key, nf)
+        self.allocatememory(key)
+        self.addMeshdata4oglmdl(key,geometry)
+        self.bindData(key)
         self.updateGL()
-    def genomMeshdata4oglmdl(self, mesh):
+
+    def updateGeometry(self):
+        if len(self._geo2Add) == 0:
+            return
+        for geometry in self._geo2Add:
+            self.delayedAddGeometry(geometry)
+        self._geo2Add.clear()
+
+    def addMeshdata4oglmdl(self,key, geometry):
+        mesh = geometry.mesh
+        #mesh.request_face_normals()
         nf = mesh.n_faces()
         verts = mesh.vertices()
         mesh.update_vertex_normals()
@@ -331,7 +241,7 @@ class BasicPainter(Painter):
                 c=mesh.color(vh)
                 c=[0.39, 1.0, 1.0,1.0]
                 iv=0
-                self.appendlistdata_f3xyzf3nf4rgba("mesh",
+                self.appendlistdata_f3xyzf3nf4rgba(key,
                     p[0], p[1], p[2],
                     n[0], n[1], n[2],
                     c[0], c[1], c[2],c[3])

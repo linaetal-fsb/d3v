@@ -10,13 +10,14 @@ class OpenMeshImporter(IOHandler):
 
     def importGeometry(self, fileName):
         g = Geometry()
-        m = om.read_trimesh(fileName)
+        try:
+            m = om.read_trimesh(fileName)
+        except:
+            print("File not supported for read with openmesh")
+            return
         g.mesh = m
         Signals.get().geometryImported.emit(g)
-
     def getImportFormats(self):
         return []
-
-
 def createIOHandler():
     return OpenMeshImporter()

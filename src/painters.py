@@ -7,7 +7,7 @@ from signals import Signals
 class Painter(Command):
     def __init__(self):
         super().__init__()
-        self.glf=QOpenGLFunctions()
+        self.glf=0
 
     def updateGL(self):
         Signals.get().updateGL.emit()
@@ -19,6 +19,7 @@ class Painter(Command):
         pass
 
     def initializeGL(self):
+        self.glf = QOpenGLFunctions()
         pass
 
     def resizeGL(self, w:int, h:int):

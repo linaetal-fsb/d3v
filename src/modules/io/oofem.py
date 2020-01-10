@@ -60,12 +60,16 @@ class OOFEM ():
         return mesh
         pass
     def oofemmesh(self):
-        line = "node 1 coords 3  0.0  0.0  0.0"
-        line= ' '.join(line.split())
-        sline=line.split(" ")
-        mesh= om.TriMesh()
-        #read self.filename
+        mesh = om.TriMesh()
+        f = open(self.filename, newline='')
+        for line in f:
+            line = ' '.join(line.split())
+            sline = line.split(" ")
+            if sline[0] == "node":
+                print("našao čvor")
+            if sline[0] == "DKTPlate":
+                print("našao DKTPlate")
+
         return mesh
         pass
-
 
