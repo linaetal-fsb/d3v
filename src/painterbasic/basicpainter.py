@@ -73,7 +73,7 @@ class BasicPainter(Painter):
         self.program.release()
 
     def resizeGL(self, w:int, h:int):
-        super().resizeGL()
+        super().resizeGL(w,h)
     def updateGL(self):
         super().updateGL()
 
