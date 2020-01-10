@@ -12,6 +12,8 @@ from PySide2.QtCore import QCoreApplication
 from geometry import Geometry
 import openmesh as om
 import numpy as np
+
+
 class BasicPainter(Painter):
     def __init__(self):
         super().__init__()
@@ -74,6 +76,7 @@ class BasicPainter(Painter):
 
     def resizeGL(self, w:int, h:int):
         super().resizeGL(w,h)
+
     def updateGL(self):
         super().updateGL()
 
@@ -201,6 +204,7 @@ class BasicPainter(Painter):
                 }"""
 
 # Painter methods implementation code ********************************************************
+
     def addGeometry(self, geometry:Geometry):
         self._geo2Add.append(geometry)
 
@@ -215,12 +219,14 @@ class BasicPainter(Painter):
         self.addMeshdata4oglmdl(key,geometry)
         self.bindData(key)
         self.updateGL()
+
     def updateGeometry(self):
         if len(self._geo2Add) == 0:
             return
         for geometry in self._geo2Add:
             self.delayedAddGeometry(geometry)
         self._geo2Add.clear()
+
     def addMeshdata4oglmdl(self,key, geometry):
         mesh = geometry.mesh
         #mesh.request_face_normals()
