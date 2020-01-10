@@ -16,6 +16,7 @@ class BasicPainter(Painter):
     def __init__(self):
         super().__init__()
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
+        self._geo2Add = []
         self.program = 0
         self.projMatrixLoc = 0
         self.mvMatrixLoc = 0
@@ -60,6 +61,7 @@ class BasicPainter(Painter):
         self.program.release()
 
     def paintGL(self):
+        self.updateGeometry()
         super().paintGL()
         self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         self.glf.glEnable(GL.GL_DEPTH_TEST)
@@ -200,6 +202,9 @@ class BasicPainter(Painter):
 
 # Painter methods implementation code ********************************************************
     def addGeometry(self, geometry:Geometry):
+        self._geo2Add.append(geometry)
+
+    def delayedAddGeometry(self, geometry:Geometry):
         self.addGeoCount= self.addGeoCount+1
         key= "mesh_"+str(self.addGeoCount)
         #self.resetmodel()
@@ -210,6 +215,12 @@ class BasicPainter(Painter):
         self.addMeshdata4oglmdl(key,geometry)
         self.bindData(key)
         self.updateGL()
+    def updateGeometry(self):
+        if len(self._geo2Add) == 0:
+            return
+        for geometry in self._geo2Add:
+            self.delayedAddGeometry(geometry)
+        self._geo2Add.clear()
     def addMeshdata4oglmdl(self,key, geometry):
         mesh = geometry.mesh
         #mesh.request_face_normals()
