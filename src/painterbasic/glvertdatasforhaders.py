@@ -6,6 +6,7 @@ More detailssssssssss
 """
 from OpenGL import GL
 from PySide2.QtGui import QOpenGLBuffer, QOpenGLVertexArrayObject
+from PySide2.QtGui import QOpenGLContext
 from shiboken2.shiboken2 import VoidPtr
 
 from painterbasic.glhelp import GLDataType
@@ -47,17 +48,26 @@ class VertDataCollectorVAO(VertDataCollector):
 
 
     def setupVertexAttribs(self,glf):
-        self._vao.create()
-        vaoBinder = QOpenGLVertexArrayObject.Binder(self._vao)
+        if not self._vao.create():
+            print("Error: VAO not created!")
+        #context = QOpenGLContext.currentContext()
+        #print("vao    setup " + str(context))
+        self._vao.bind()
         # Set VBO
         for key, value in self._dVBOs.items():
             value.setupVBO(glf)
-        vaoBinder = None
+        self._vao.release()
+
 
     def drawvao(self, glfunctions):
-        vaoBinder = QOpenGLVertexArrayObject.Binder(self._vao)
+        #assert (glfunctions.glIsVertexArray(self._vao))
+        #context = QOpenGLContext.currentContext()
+        #print("vao    paint " + str(context))
+        if not self._vao.isCreated():
+            print("Error: VAO not created!")
+        self._vao.bind()
         glfunctions.glDrawArrays(self.oglprimtype(), 0, self.numvertices())
-        vaoBinder = None
+        self._vao.release()
 
     def appendsize(self,numents):
         """

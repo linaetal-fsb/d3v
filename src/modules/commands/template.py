@@ -34,7 +34,7 @@ class TemplateCommand(Command):
         p4 = mesh.add_vertex([ 1, -1, -1])
         p5 = mesh.add_vertex([ 1, -1,  1])
         p6 = mesh.add_vertex([ 1,  1, -1])
-        p7 = mesh.add_vertex([ 1,  1,  1])
+        p7 = mesh.add_vertex([ 5,  5,  1])
         # yapf: enable
 
         mesh.add_face([p0, p6, p4])
@@ -55,6 +55,17 @@ class TemplateCommand(Command):
         Signals.get().geometryImported.emit(g)
 
     def onCreateSph(self):
+        fileName='D:\\Development\\d3v\\examples\\cube-minimal-normals.ply'
+        g = Geometry()
+        try:
+            m = om.read_trimesh(fileName)
+        except:
+            print("File not supported for read with openmesh")
+            return
+        g.mesh = m
+        Signals.get().geometryImported.emit(g)
+        QMessageBox.information(None, "Učitavanje", "Učitavanje datoteke preko  Create .. meni")
+        return
         QMessageBox.information(None, "Sphere", "Creating sphere")
 
 
