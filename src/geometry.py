@@ -26,3 +26,11 @@ class Geometry(QObject):
     @mesh.setter
     def mesh(self, newMesh):
         self._mesh = newMesh
+
+    @property
+    def bounds(self):
+        if not _mesh.vertices():
+            return (None, None)
+        bb = [_mesh.vertices(0), _mesh.vertices(0)]
+        for v in _mesh.vertices():
+            if bb[0].x()
