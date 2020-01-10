@@ -35,6 +35,7 @@ class HullForm ():
         self.testcalc()
     def getmesh(self):
         m=self.test()
+        m=self.onCreateBox()
         return m
     def test(self):
         mesh= om.TriMesh()
@@ -64,6 +65,34 @@ class HullForm ():
         #read self.filename
         return mesh
         pass
+    def onCreateBox(self):
+        mesh = om.TriMesh()
+        # m --> min, M --> max
+        # yapf: disable
+        p0 = mesh.add_vertex([-1, -1, -1])
+        p1 = mesh.add_vertex([-1, -1,  1])
+        p2 = mesh.add_vertex([-1,  1, -1])
+        p3 = mesh.add_vertex([-1,  1,  1])
+        p4 = mesh.add_vertex([ 1, -1, -1])
+        p5 = mesh.add_vertex([ 1, -1,  1])
+        p6 = mesh.add_vertex([ 1,  1, -1])
+        p7 = mesh.add_vertex([ 1,  1,  1])
+        # yapf: enable
+
+        mesh.add_face([p0, p6, p4])
+        mesh.add_face([p0, p2, p6])
+        mesh.add_face([p0, p4, p5])
+        mesh.add_face([p0, p5, p1])
+        mesh.add_face([p0, p3, p2])
+        mesh.add_face([p0, p1, p3])
+        mesh.add_face([p6, p2, p3])
+        mesh.add_face([p6, p3, p7])
+        mesh.add_face([p4, p7, p5])
+        mesh.add_face([p4, p6, p7])
+        mesh.add_face([p1, p5, p7])
+        mesh.add_face([p1, p7, p3])
+
+        return  mesh
     def testcalc(self):
         with open(self.filename, newline='') as csvfile:
             hfr = csv.reader(csvfile, delimiter='\t', quotechar='|')

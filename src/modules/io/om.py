@@ -17,10 +17,7 @@ class OpenMeshImporter(IOHandler):
             return
         g.mesh = m
         Signals.get().geometryImported.emit(g)
-
     def getImportFormats(self):
         return []
-
-
 def createIOHandler():
     return OpenMeshImporter()
