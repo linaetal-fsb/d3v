@@ -10,7 +10,7 @@ class BBox():
 
     @classmethod
     def construct(cls, points):
-        if not points:
+        if not len(points):
             return BBox(empty = True)
 
         minc = np.array(points[0])
@@ -70,12 +70,14 @@ class BBox():
 
 
     @classmethod
-    def intersection(cls, first:BBox, second:BBox):
-        return cls = first * second
+    def intersection(cls, first, second):
+        cls = first * second
+        return cls
 
     @classmethod
-    def union(cls, first:BBox, second:BBox):
-        return cls = first + second
+    def union(cls, first, second):
+        cls = first + second
+        return cls
 
     @property
     def center(self):
@@ -83,7 +85,7 @@ class BBox():
 
     @property
     def radius(self):
-        return np.linalg.norm(self._maxCoord - self._minCoord) * 0.5
+        return np.linalg.norm(self._maxCoord - self._minCoord) * 0.5 if not self.empty else 0.0
 
     @property
     def minCoord(self):
