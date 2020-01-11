@@ -1,6 +1,6 @@
-from PySide2.QtWidgets import QOpenGLWidget
+from PySide2.QtWidgets import QOpenGLWidget, QApplication
 from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpenGLDebugLogger, QOpenGLDebugMessage
-from PySide2.QtCore import QRect, Slot
+from PySide2.QtCore import Qt, QRect, Slot
 
 from signals import Signals, DragInfo
 from painterbasic.basicpainter import BasicPainter
@@ -16,7 +16,17 @@ class GlWin(QOpenGLWidget):
     poi = QVector3D(0, 0, 0)  # point of interest
     phi = 0.0  # rotation about X
     theta = 0.0  # rotation about Y
-    _bb = BBox(empty = True)
+
+    _rotate = 1
+    _zoom   = 2
+    _pan    = 4
+    _kbModifiers = {
+        Qt.NoModifier: _rotate,
+        Qt.ShiftModifier: _zoom,
+        Qt.ControlModifier: _pan,
+    }
+ 
+  _bb = BBox(empty = True)
     #def __init__(self,  parent=None):
         #pass
         #QOpenGLWidget.__init__(self,parent)
@@ -82,6 +92,26 @@ class GlWin(QOpenGLWidget):
 
     @Slot()
     def onDrag(self, di:DragInfo):
+        app = QApplication.instance()
+        mouse = QApplication.mouseButtons()
+        kb = QApplication.keyboardModifiers()
+
+        mt = self.calcMovementType(mouse, kb)
+        if mt == self._zoom:
+            self.updateZoomData(di)
+        if mt == self._pan:
+            self.updatePanData(di)
+        if mt == self._rotate:
+            self.updateRotateData(di)
+        self.update()
+
+    def updateZoomData(self, di:DragInfo):
+        pass
+
+    def updatePanData(self, di: DragInfo):
+            pass
+
+    def updateRotateData(self, di:DragInfo):
         d = di.normalizedDelta
         #[-1:1] --> 2*[-pi:pi]
         self.phi = 2.0 * ((d.y() + 1.0) * 3.14 - 3.14)
@@ -96,7 +126,25 @@ class GlWin(QOpenGLWidget):
         self.mv.translate(trans)
         self.mv.rotate(addRot)
         self.mv.rotate(rot)
-        self.update()
+
+
+    def calcMovementType(self, mb:Qt.MouseButtons, km:Qt.KeyboardModifiers):
+        if mb == Qt.NoButton or mb == Qt.RightButton:
+            return None
+
+        if mb == Qt.MiddleButton:
+            return self._pan
+
+        assert(mb == Qt.LeftButton)
+
+        if km == Qt.NoModifier:
+            return self._kbModifiers[Qt.NoModifier]
+        if km == Qt.ShiftModifier:
+            return self._kbModifiers[Qt.ShiftModifier]
+        if km == Qt.ControlModifier:
+            return self._kbModifiers[Qt.ControlModifier]
+
+        return None
 
     @Slot()
     def onDragEnd(self, di:DragInfo):
