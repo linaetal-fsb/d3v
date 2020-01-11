@@ -16,6 +16,7 @@ class GlWin(QOpenGLWidget):
     poi = QVector3D(0, 0, 0)  # point of interest
     phi = 0.0  # rotation about X
     theta = 0.0  # rotation about Y
+    zoomFactor = 1.0 #vrport
 
     _rotate = 1
     _zoom   = 2
@@ -26,7 +27,8 @@ class GlWin(QOpenGLWidget):
         Qt.ControlModifier: _pan,
     }
  
-  _bb = BBox(empty = True)
+    _bb = BBox(empty = True)
+
     #def __init__(self,  parent=None):
         #pass
         #QOpenGLWidget.__init__(self,parent)
@@ -36,7 +38,9 @@ class GlWin(QOpenGLWidget):
         ratio = float(self.vport.width())/float(self.vport.height())
         self.proj = QMatrix4x4()
         r = self._bb.radius * 2.0 if not self._bb.empty else 10.0
-        self.proj.ortho(-r*ratio,r*ratio,-r,r,-r,r)
+        self.proj.ortho(-r*ratio * self.zoomFactor,r*ratio * self.zoomFactor,
+                        -r * self.zoomFactor,r * self.zoomFactor,
+                        -r,r)
 
         for p in self.glPainters:
             p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
@@ -106,10 +110,22 @@ class GlWin(QOpenGLWidget):
         self.update()
 
     def updateZoomData(self, di:DragInfo):
-        pass
+        lastPos = di.wLastCurrentPos
+        pos = di.wCurrentPos
+        d = pos.y() - lastPos.y()
+        d = float(d)/di.wsize.height()
+        minz = 1.0/1.15
+        maxz = 1.15
+        if d >= 0:
+            z = 0.5 * (maxz - 1.0) * (d + 1) + 1.0
+        else:
+            z = 0.5 * (1.0 - minz) * (d + 1) + minz
+        self.zoomFactor *= z
+
 
     def updatePanData(self, di: DragInfo):
-            pass
+        print ("panning")
+
 
     def updateRotateData(self, di:DragInfo):
         d = di.normalizedDelta

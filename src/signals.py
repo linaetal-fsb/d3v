@@ -12,6 +12,7 @@ class DragInfo:
         self.wStartPos = wpos
         self._normalize(self.wStartPos)
         self.wCurrentPos = self.wStartPos
+        self.wLastCurrentPos = self.wCurrentPos
 
     def update(self, wpos: QPoint):
         self.wLastCurrentPos = self.wCurrentPos
