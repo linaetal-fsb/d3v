@@ -1,6 +1,7 @@
 import openmesh as om
 import uuid
 from PySide2.QtCore import QObject
+from selinfo import SelectionInfo
 
 class Geometry(QObject):
     def __init__(self, guid = None):
@@ -26,3 +27,6 @@ class Geometry(QObject):
     @mesh.setter
     def mesh(self, newMesh):
         self._mesh = newMesh
+
+    def onSelected(self, si:SelectionInfo):
+        print ("slelected geometry: {}".format(self.guid))

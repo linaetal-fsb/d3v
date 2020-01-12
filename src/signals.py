@@ -2,6 +2,7 @@ from PySide2.QtCore import QObject, QPoint, QPointF, QSize, QRect, Signal, Slot
 from PySide2.QtGui import QMatrix4x4, QVector3D, QVector4D
 
 from geometry import Geometry
+from selinfo import SelectionInfo
 
 class DragInfo:
     def __init__(self, wpos: QPoint, wsize: QSize, mv: QMatrix4x4, proj: QMatrix4x4, vport: QRect):
@@ -60,6 +61,7 @@ class Signals(QObject):
     geometryAdded = Signal(Geometry)
     geometryImported = Signal(Geometry)
     importGeometry = Signal(str)
+    selectionChanged = Signal(SelectionInfo)
 
     def __init__(self):
         """ Virtually private constructor. """
