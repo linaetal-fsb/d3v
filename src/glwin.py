@@ -1,10 +1,13 @@
 from PySide2.QtWidgets import QOpenGLWidget
 from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpenGLDebugLogger, QOpenGLDebugMessage
-from PySide2.QtCore import QRect, Slot
+from PySide2.QtCore import Qt, QRect, Slot
 
 from signals import Signals, DragInfo
 from painterbasic.basicpainter import BasicPainter
+
 from bounds import  BBox
+from selection import Selector
+from application import App
 
 
 class GlWin(QOpenGLWidget):
@@ -75,6 +78,12 @@ class GlWin(QOpenGLWidget):
         self.dragInfo.update(event.pos())
         Signals.get().draggingEnd.emit(self.dragInfo)
 
+        # mouse click
+        if event.button() == Qt.LeftButton and self.dragInfo.wCurrentPos == self.dragInfo.wStartPos:
+            s = Selector()
+            P0 = self.dragInfo.wCurrentPos
+            K = rotation(self.mv) .rotatedVector(QVector3D(0.0, 0.0, -1.0))
+            s.select([P0,K], App.instance().geometry)
 
     @Slot()
     def updateGL(self):
