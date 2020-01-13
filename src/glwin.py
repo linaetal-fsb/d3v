@@ -4,6 +4,7 @@ from PySide2.QtCore import QRect, Slot
 
 from signals import Signals, DragInfo
 from painterbasic.basicpainter import BasicPainter
+from bounds import  BBox
 
 
 class GlWin(QOpenGLWidget):
@@ -15,18 +16,17 @@ class GlWin(QOpenGLWidget):
     poi = QVector3D(0, 0, 0)  # point of interest
     phi = 0.0  # rotation about X
     theta = 0.0  # rotation about Y
+    _bb = BBox(empty = True)
     #def __init__(self,  parent=None):
         #pass
         #QOpenGLWidget.__init__(self,parent)
         #QOpenGLFunctions.__init__(self)
 
     def paintGL(self):
-        # self.mv = QMatrix4x4()
-        # self.mv.rotate(self.theta * 57.3, 0.0, 1.0, 0.0) # rotation about Y
-        # self.mv.rotate(self.phi * 57.3, 1.0, 0.0, 0.0) # rotation about X
-        # self.mv.translate(-self.eye)
-
-
+        ratio = float(self.vport.width())/float(self.vport.height())
+        self.proj = QMatrix4x4()
+        r = self._bb.radius * 2.0 if not self._bb.empty else 10.0
+        self.proj.ortho(-r*ratio,r*ratio,-r,r,-r,r)
 
         for p in self.glPainters:
             p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
@@ -53,10 +53,6 @@ class GlWin(QOpenGLWidget):
     def resizeGL(self, w:int, h:int):
         self.vport.setWidth(w)
         self.vport.setHeight(h)
-
-        ratio = float(w)/float(h)
-        self.proj = QMatrix4x4()
-        self.proj.ortho(-10*ratio,10*ratio,-10,10,-100,100)
 
         for p in self.glPainters:
             p.resizeGL(w,h)
@@ -92,12 +88,14 @@ class GlWin(QOpenGLWidget):
         self.theta = 2.0 * ((d.x() + 1.0) * 3.14 - 3.14)
 
         rot = rotation(di.mvm)
-        trans = QVector3D(0,0,-10)
+        r = self._bb.radius if not self._bb.empty else 10.0
+        trans = QVector3D(0,0,-r)
         addRot = QQuaternion.fromEulerAngles(self.phi * 57.3, self.theta * 57.3, 0.0)
         self.mv = QMatrix4x4()
-        self.mv.rotate(rot)
-        self.mv.rotate(addRot)
+
         self.mv.translate(trans)
+        self.mv.rotate(addRot)
+        self.mv.rotate(rot)
         self.update()
 
     @Slot()
@@ -106,6 +104,7 @@ class GlWin(QOpenGLWidget):
 
     @Slot()
     def onGeometryAdded(self, geometry):
+        self._bb =  self._bb + geometry.bbox
         for p in self.glPainters:
             p.addGeometry(geometry)
 
