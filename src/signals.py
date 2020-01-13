@@ -13,6 +13,7 @@ class DragInfo:
         self.wStartPos = wpos
         self._normalize(self.wStartPos)
         self.wCurrentPos = self.wStartPos
+        self.wLastCurrentPos = self.wCurrentPos
 
     def update(self, wpos: QPoint):
         self.wLastCurrentPos = self.wCurrentPos
@@ -21,18 +22,18 @@ class DragInfo:
 
     @property
     def mCurrentPos(self):
-        p = QVector3D(self.wCurrentPos.x, self.wCurrentPos.y, 0.5)
-        return p.unproject(self.mv, self.proj, self.vport)
+        p = QVector3D(self.wCurrentPos.x(), self.wCurrentPos.y(), 0.5)
+        return p.unproject(self.mvm, self.proj, self.vport)
 
     @property
     def mStartPos(self):
-        p = QVector3D(self.wStartPos.x, self.wStartPos.y, 0.5)
-        return p.unproject(self.mv, self.proj, self.vport)
+        p = QVector3D(self.wStartPos.x(), self.wStartPos.y(), 0.5)
+        return p.unproject(self.mvm, self.proj, self.vport)
 
     @property
     def mLastCurrentPos(self):
-        p = QVector3D(self.wLastCurrentPos.x, self.wLastCurrentPos.y, 0.5)
-        return p.unproject(self.mv, self.proj, self.vport)
+        p = QVector3D(self.wLastCurrentPos.x(), self.wLastCurrentPos.y(), 0.5)
+        return p.unproject(self.mvm, self.proj, self.vport)
 
     @property
     def wDelta(self):

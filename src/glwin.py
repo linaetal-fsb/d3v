@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QOpenGLWidget
+from PySide2.QtWidgets import QOpenGLWidget, QApplication
 from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpenGLDebugLogger, QOpenGLDebugMessage
 from PySide2.QtCore import Qt, QRect, Slot
 
@@ -17,9 +17,22 @@ class GlWin(QOpenGLWidget):
     vport = QRect()
     eye = QVector3D(0, 0, 10.0)  # position of the viewer
     poi = QVector3D(0, 0, 0)  # point of interest
+    pan = QVector3D(0, 0, 0)
     phi = 0.0  # rotation about X
     theta = 0.0  # rotation about Y
+    zoomFactor = 1.0 #vrport
+
+    _rotate = 1
+    _zoom   = 2
+    _pan    = 4
+    _kbModifiers = {
+        Qt.NoModifier: _rotate,
+        Qt.ShiftModifier: _zoom,
+        Qt.ControlModifier: _pan,
+    }
+ 
     _bb = BBox(empty = True)
+
     #def __init__(self,  parent=None):
         #pass
         #QOpenGLWidget.__init__(self,parent)
@@ -29,7 +42,9 @@ class GlWin(QOpenGLWidget):
         ratio = float(self.vport.width())/float(self.vport.height())
         self.proj = QMatrix4x4()
         r = self._bb.radius * 2.0 if not self._bb.empty else 10.0
-        self.proj.ortho(-r*ratio,r*ratio,-r,r,-r,r)
+        self.proj.ortho(-r*ratio * self.zoomFactor,r*ratio * self.zoomFactor,
+                        -r * self.zoomFactor,r * self.zoomFactor,
+                        -r, r)
 
         for p in self.glPainters:
             p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
@@ -91,21 +106,74 @@ class GlWin(QOpenGLWidget):
 
     @Slot()
     def onDrag(self, di:DragInfo):
+        app = QApplication.instance()
+        mouse = QApplication.mouseButtons()
+        kb = QApplication.keyboardModifiers()
+
+        mt = self.calcMovementType(mouse, kb)
+        if mt == self._zoom:
+            self.updateZoomData(di)
+        if mt == self._pan:
+            self.updatePanData(di)
+        if mt == self._rotate:
+            self.updateRotateData(di)
+        self.update()
+
+    def updateZoomData(self, di:DragInfo):
+        lastPos = di.wLastCurrentPos
+        pos = di.wCurrentPos
+        d = pos.y() - lastPos.y()
+        d = float(d)/di.wsize.height()
+        minz = 1.0/1.15
+        maxz = 1.15
+        if d >= 0:
+            z = 0.5 * (maxz - 1.0) * (d + 1) + 1.0
+        else:
+            z = 0.5 * (1.0 - minz) * (d + 1) + minz
+        self.zoomFactor *= z
+
+
+    def updatePanData(self, di: DragInfo):
+        pan = di.mCurrentPos - di.mLastCurrentPos
+        self.mv = di.mvm
+        self.mv.translate(pan)
+
+    def updateRotateData(self, di:DragInfo):
         d = di.normalizedDelta
         #[-1:1] --> 2*[-pi:pi]
-        self.phi = 2.0 * ((d.y() + 1.0) * 3.14 - 3.14)
+        self.phi = 2.0 * ((-d.y() + 1.0) * 1.57 - 1.57)
         self.theta = 2.0 * ((d.x() + 1.0) * 3.14 - 3.14)
 
         rot = rotation(di.mvm)
         r = self._bb.radius if not self._bb.empty else 10.0
-        trans = QVector3D(0,0,-r)
+        trans = translation(di.mvm)
+        if trans.length() < 1.0e-5:
+            trans = QVector3D(0,0,-r)
         addRot = QQuaternion.fromEulerAngles(self.phi * 57.3, self.theta * 57.3, 0.0)
         self.mv = QMatrix4x4()
 
         self.mv.translate(trans)
         self.mv.rotate(addRot)
         self.mv.rotate(rot)
-        self.update()
+
+
+    def calcMovementType(self, mb:Qt.MouseButtons, km:Qt.KeyboardModifiers):
+        if mb == Qt.NoButton or mb == Qt.RightButton:
+            return None
+
+        if mb == Qt.MiddleButton:
+            return self._pan
+
+        assert(mb == Qt.LeftButton)
+
+        if km == Qt.NoModifier:
+            return self._kbModifiers[Qt.NoModifier]
+        if km == Qt.ShiftModifier:
+            return self._kbModifiers[Qt.ShiftModifier]
+        if km == Qt.ControlModifier:
+            return self._kbModifiers[Qt.ControlModifier]
+
+        return None
 
     @Slot()
     def onDragEnd(self, di:DragInfo):
@@ -131,3 +199,7 @@ def rotation(m:QMatrix4x4):
     z = QVector3D(m.column(2))
     retVal = QQuaternion.fromAxes(x,y,z)
     return retVal
+
+def translation(m:QMatrix4x4):
+    retval = QVector3D(m.column(3))
+    return retval
