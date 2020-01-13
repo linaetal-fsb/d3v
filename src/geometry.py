@@ -1,7 +1,10 @@
 import openmesh as om
 import uuid
 from PySide2.QtCore import QObject
+
+from bounds import BBox
 from selinfo import SelectionInfo
+
 
 class Geometry(QObject):
     def __init__(self, guid = None):
@@ -27,6 +30,11 @@ class Geometry(QObject):
     @mesh.setter
     def mesh(self, newMesh):
         self._mesh = newMesh
+
+    @property
+    def bbox(self):
+        bb = BBox.construct(self._mesh.points())
+        return bb
 
     def onSelected(self, si:SelectionInfo):
         print ("slelected geometry: {}".format(self.guid))
