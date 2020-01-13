@@ -8,6 +8,7 @@ from painterbasic.basicpainter import BasicPainter
 from bounds import  BBox
 from selection import Selector
 from application import App
+from painters import Painter
 
 
 class GlWin(QOpenGLWidget):
@@ -32,6 +33,7 @@ class GlWin(QOpenGLWidget):
     }
  
     _bb = BBox(empty = True)
+    _painters2update = []
 
     #def __init__(self,  parent=None):
         #pass
@@ -52,6 +54,10 @@ class GlWin(QOpenGLWidget):
         for p in self.glPainters:
             p.paintGL()
 
+        for p in self._painters2update:
+            p.updateGL()
+        self._painters2update.clear()
+        Signals.get().updateGL.emit()
 
     def initializeGL(self):
         self._glDebugCounter = 0
@@ -60,7 +66,6 @@ class GlWin(QOpenGLWidget):
         self._glLogger.messageLogged.connect(self.showGlDebugMessage)
         self._glLogger.startLogging()
 
-        Signals.get().updateGL.connect(self.updateGL)
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
         Signals.get().geometryAdded.connect(self.onGeometryAdded)
@@ -77,6 +82,8 @@ class GlWin(QOpenGLWidget):
 
     def addPainter(self, painter):
         self.glPainters.append(painter)
+        for p in self.glPainters:
+            p.requestUpdateGL.connect(self.onUpdateGLRequested)
 
     def mouseMoveEvent(self, event:QMouseEvent):
         self.dragInfo.update(event.pos())
@@ -99,10 +106,6 @@ class GlWin(QOpenGLWidget):
             P0 = self.dragInfo.wCurrentPos
             K = rotation(self.mv) .rotatedVector(QVector3D(0.0, 0.0, -1.0))
             s.select([P0,K], App.instance().geometry)
-
-    @Slot()
-    def updateGL(self):
-        self.update()
 
     @Slot()
     def onDrag(self, di:DragInfo):
@@ -185,13 +188,14 @@ class GlWin(QOpenGLWidget):
         for p in self.glPainters:
             p.addGeometry(geometry)
 
-
     @Slot()
     def showGlDebugMessage(self, msg:QOpenGLDebugMessage):
         self._glDebugCounter += 1
         print("{:3}: {}".format(self._glDebugCounter, msg.message()))
 
-
+    @Slot()
+    def onUpdateGLRequested(self, p:Painter):
+        self._painters2update.append(p)
 
 def rotation(m:QMatrix4x4):
     x = QVector3D(m.column(0))

@@ -1,8 +1,8 @@
 from PySide2.QtGui import QOpenGLFunctions
+from PySide2.QtCore import Signal, QObject
 
 from commands import Command
 from geometry import Geometry
-from signals import Signals
 
 class Painter(Command):
     def __init__(self):
@@ -10,7 +10,7 @@ class Painter(Command):
         self.glf=0
 
     def updateGL(self):
-        Signals.get().updateGL.emit()
+        pass
 
     def paintGL(self):
         pass
@@ -33,3 +33,11 @@ class Painter(Command):
 
     def addGeometry(self, geometry:Geometry):
         pass
+
+    def requestUpdateGL(self):
+        Signals.get().requestUpdateGL.emit(self)
+
+
+class PainterSignals(QObject):
+    __metaclass__ = Painter
+    requestUpdateGL = Signal(Painter)
