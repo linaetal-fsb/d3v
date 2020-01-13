@@ -132,7 +132,7 @@ class GlWin(QOpenGLWidget):
     def updateRotateData(self, di:DragInfo):
         d = di.normalizedDelta
         #[-1:1] --> 2*[-pi:pi]
-        self.phi = 2.0 * ((d.y() + 1.0) * 1.57 - 1.57)
+        self.phi = 2.0 * ((-d.y() + 1.0) * 1.57 - 1.57)
         self.theta = 2.0 * ((d.x() + 1.0) * 3.14 - 3.14)
 
         rot = rotation(di.mvm)
