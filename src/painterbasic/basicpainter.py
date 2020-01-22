@@ -229,19 +229,25 @@ class BasicPainter(Painter):
 
     def addMeshdata4oglmdl(self,key, geometry):
         mesh = geometry.mesh
-        #mesh.request_face_normals()
+        if not mesh.has_face_normals(): # normals are necessary for correct lighting effect
+            mesh.request_face_normals()
+            mesh.update_face_normals();
         nf = mesh.n_faces()
         verts = mesh.vertices()
-        mesh.update_vertex_normals()
+        if not mesh.has_face_colors() and not mesh.has_vertex_colors():
+            c = [0.4, 1.0, 1.0, 1.0] #default color
         for fh in mesh.faces():
+            n=mesh.normal(fh)
+            if mesh.has_face_colors():
+               c= mesh.color(fh)
             for vh in mesh.fv(fh): #vertex handle
                 vit=mesh.vv(vh) # iterator
                 p=mesh.point(vh)
-                n=mesh.normal(vh)
-                c=mesh.color(vh)
-                c=[0.39, 1.0, 1.0,1.0]
+                if mesh.has_vertex_colors():
+                    c = mesh.color(vh)
                 iv=0
                 self.appendlistdata_f3xyzf3nf4rgba(key,
                     p[0], p[1], p[2],
                     n[0], n[1], n[2],
                     c[0], c[1], c[2],c[3])
+
