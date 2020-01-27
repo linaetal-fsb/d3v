@@ -25,25 +25,25 @@ class TemplateCommand(Command):
 
     def onCreateBox(self):
         mesh = om.TriMesh()
-        mesh.request_vertex_colors()
+        #mesh.request_vertex_colors()
         # m --> min, M --> max
         # yapf: disable
         p0 = mesh.add_vertex([-1, -1, -1])
-        mesh.set_color(p0,[0.5,0.5,0.5,1])
+        #mesh.set_color(p0,[0.5,0.5,0.5,1])
         p1 = mesh.add_vertex([-1, -1,  1])
-        mesh.set_color(p1, [0, 0.5, 0.5, 1])
+        #mesh.set_color(p1, [0, 0.5, 0.5, 1])
         p2 = mesh.add_vertex([-1,  1, -1])
-        mesh.set_color(p2, [0.5, 0, 0.5, 1])
+        #mesh.set_color(p2, [0.5, 0, 0.5, 1])
         p3 = mesh.add_vertex([-1,  1,  1])
-        mesh.set_color(p3, [0.5, 0.5, 0.5, 1])
+        #mesh.set_color(p3, [0.5, 0.5, 0.5, 1])
         p4 = mesh.add_vertex([ 1, -1, -1])
-        mesh.set_color(p4, [0.5, 0.5, 0.5, 1])
+        #mesh.set_color(p4, [0.5, 0.5, 0.5, 1])
         p5 = mesh.add_vertex([ 1, -1,  1])
-        mesh.set_color(p5, [0.5, 0.5, 0.5, 1])
+        #mesh.set_color(p5, [0.5, 0.5, 0.5, 1])
         p6 = mesh.add_vertex([ 1,  1, -1])
-        mesh.set_color(p6, [0.5, 0.5, 0.5, 1])
+        #mesh.set_color(p6, [0.5, 0.5, 0.5, 1])
         p7 = mesh.add_vertex([ 1,  1,  1])
-        mesh.set_color(p7, [0.5, 0.5, 0.5, 1])
+        #mesh.set_color(p7, [0.5, 0.5, 0.5, 1])
 
         # yapf: enable
 
@@ -65,7 +65,7 @@ class TemplateCommand(Command):
         Signals.get().geometryImported.emit(g)
 
     def onCreateSph(self):
-        fileName='D:\\Development\\d3v\\examples\\cube-minimal-normals.ply'
+        fileName='D:\\Development\\d3v\\examples\\cube-minimal.obj'
         g = Geometry()
         try:
             m = om.read_trimesh(fileName)

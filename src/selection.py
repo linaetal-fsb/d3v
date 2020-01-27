@@ -30,7 +30,7 @@ class Selector(QObject):
                 meshres = self.getMeshInterscection(K, P0,geo.mesh)
                 if len(meshres) > 0:
                     si = SelectionInfo()
-                    si.setInfo(meshres[0],meshres[1],geo)
+                    si.update(meshres[0], meshres[1], geo)
                     sis.append(si)
 
         # selected je selected geometry
@@ -47,8 +47,12 @@ class Selector(QObject):
             # selected je selekcionirana geometrija
             selected = si.getGeometry()
             selected.onSelected(si)
-            # obavijesti sve zainteresirane da je selekcija promijenjena
-            Signals.get().selectionChanged.emit(si)
+
+        else:
+            selected= None
+            si = SelectionInfo()
+        # obavijesti sve zainteresirane da je selekcija promijenjena
+        Signals.get().selectionChanged.emit(si)
 
     def getMeshInterscection(self,K, P0,mesh:om.TriMesh):
         result = []
