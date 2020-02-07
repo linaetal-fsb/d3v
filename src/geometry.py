@@ -3,7 +3,7 @@ import uuid
 from PySide2.QtCore import QObject
 
 from bounds import BBox
-from selinfo import SelectionInfo
+#from selinfo import SelectionInfo
 
 
 class Geometry(QObject):
@@ -36,5 +36,7 @@ class Geometry(QObject):
         bb = BBox.construct(self._mesh.points())
         return bb
 
-    def onSelected(self, si:SelectionInfo):
-        print ("slelected geometry: {}".format(self.guid))
+    def onSelected(self, si):
+        print ("Selected geometry: {}".format(self.guid))
+        print("Selected facet: {}".format(si.face))
+        print("Intersection point distance: {}".format(si.distance))

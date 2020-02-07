@@ -129,6 +129,7 @@ class VertDataCollectorVAO(VertDataCollector):
 
         for key, value in self._dVBOs.items():
             value.free()
+        self._vao.destroy()
 
 
 class VertDataCollectorCoord3fNormal3f(VertDataCollectorVAO):
@@ -291,3 +292,6 @@ class VertDataSingleChannelVBO(VertDataSingleChannel):
                                 doNormalization,
                                 self.memsizeonevert(), null)
         self._vbo.release()
+
+    def free(self):
+        self._vbo.destroy()

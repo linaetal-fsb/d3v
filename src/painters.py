@@ -1,6 +1,6 @@
 from PySide2.QtGui import QOpenGLFunctions
 from PySide2.QtCore import Signal, QObject
-
+from signal import Signals
 from commands import Command
 from geometry import Geometry
 

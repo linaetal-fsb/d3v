@@ -3,7 +3,7 @@ from PySide2.QtGui import QOpenGLShaderProgram, QOpenGLShader
 from PySide2.QtGui import QOpenGLVersionProfile, QOpenGLContext
 from PySide2.QtGui import QSurfaceFormat
 from PySide2.QtWidgets import QMessageBox
-from painters import Painter
+from painters import Painter, PainterSignals
 from signals import Signals, DragInfo
 from painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
 from painterbasic.glhelp import GLEntityType
@@ -12,13 +12,16 @@ from PySide2.QtCore import QCoreApplication
 from geometry import Geometry
 import openmesh as om
 import numpy as np
-
+from selinfo import SelectionInfo
 
 class BasicPainter(Painter):
     def __init__(self):
-        super().__init__()
+        #super().__init__()
+        super(Painter, self).__init__()
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
         self._geo2Add = []
+        self._doSelection=False
+        self._si=SelectionInfo()
         self.program = 0
         self.projMatrixLoc = 0
         self.mvMatrixLoc = 0
@@ -30,6 +33,7 @@ class BasicPainter(Painter):
         self.fragmentShader = self.fragmentShaderSource()
         # model / geometry
         self.addGeoCount=0
+        Signals.get().selectionChanged.connect(self.onSelected)
 
     def initializeGL(self):
         super().initializeGL()
@@ -67,8 +71,8 @@ class BasicPainter(Painter):
         super().paintGL()
         self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         self.glf.glEnable(GL.GL_DEPTH_TEST)
-        #self.glf.glEnable(GL.GL_CULL_FACE)
-        self.glf.glDisable(GL.GL_CULL_FACE)
+        self.glf.glEnable(GL.GL_CULL_FACE)
+        #self.glf.glDisable(GL.GL_CULL_FACE)
         self.program.bind()
         for key, value in self._dentsvertsdata.items():
             value.drawvao(self.glf)
@@ -145,6 +149,7 @@ class BasicPainter(Painter):
         for ent in atrList:
             self.program.bindAttributeLocation(ent[0], ent[1])
 
+
 # Shader code ********************************************************
     def vertexShaderSourceCore(self):
         return """#version 150
@@ -207,10 +212,11 @@ class BasicPainter(Painter):
 
     def addGeometry(self, geometry:Geometry):
         self._geo2Add.append(geometry)
+        #self.requestUpdateGL()
 
     def delayedAddGeometry(self, geometry:Geometry):
         self.addGeoCount= self.addGeoCount+1
-        key= "mesh_"+str(self.addGeoCount)
+        key= geometry.guid
         #self.resetmodel()
         self.initnewdictitem(key, GLEntityType.TRIA)
         nf = geometry.mesh.n_faces()
@@ -218,15 +224,50 @@ class BasicPainter(Painter):
         self.allocatememory(key)
         self.addMeshdata4oglmdl(key,geometry)
         self.bindData(key)
-        self.updateGL()
+
+    def addSelection(self):
+        key= 0
+        if key in self._dentsvertsdata:
+            self._dentsvertsdata[key].free()
+            self._dentsvertsdata.pop(key)
+            #self._dentsvertsdata.clear()
+            pass
+        if self._si.haveSelection():
+            self.initnewdictitem(key, GLEntityType.TRIA)
+            nf = self._si.nFaces()*2
+            self.appenddictitemsize(key, nf)
+            self.allocatememory(key)
+            self.addSelData4oglmdl(key, self._si, self._si.geometry)
+            self.bindData(key)
 
     def updateGeometry(self):
-        if len(self._geo2Add) == 0:
-            return
-        for geometry in self._geo2Add:
-            self.delayedAddGeometry(geometry)
-        self._geo2Add.clear()
+        if len(self._geo2Add) > 0:
+            for geometry in self._geo2Add:
+                self.delayedAddGeometry(geometry)
+            self._geo2Add.clear()
+        if self._doSelection:
+            self.addSelection()
+            self._doSelection=False
 
+
+    def addSelData4oglmdl(self,key,si,geometry):
+        mesh = geometry.mesh
+        for fh in si.allfaces:
+            n = mesh.normal(fh)
+            c = [1.0, 0.0, 1.0, 1.0]
+            for vh in mesh.fv(fh):  # vertex handle
+                p = mesh.point(vh)
+                self.appendlistdata_f3xyzf3nf4rgba(key,
+                                                   p[0]+n[0]/100, p[1]+n[1]/100, p[2]+n[2]/100,
+                                                   n[0], n[1], n[2],
+                                                   c[0], c[1], c[2], c[3])
+            for vh in mesh.fv(fh):  # vertex handle
+                p = mesh.point(vh)
+                self.appendlistdata_f3xyzf3nf4rgba(key,
+                                                   p[0] - n[0] / 100, p[1] - n[1] / 100, p[2] - n[2] / 100,
+                                                   n[0], n[1], n[2],
+                                                   c[0], c[1], c[2], c[3])
+        return
     def addMeshdata4oglmdl(self,key, geometry):
         mesh = geometry.mesh
         if not mesh.has_face_normals(): # normals are necessary for correct lighting effect
@@ -239,7 +280,7 @@ class BasicPainter(Painter):
         for fh in mesh.faces():
             n=mesh.normal(fh)
             if mesh.has_face_colors():
-               c= mesh.color(fh)
+                c= mesh.color(fh)
             for vh in mesh.fv(fh): #vertex handle
                 vit=mesh.vv(vh) # iterator
                 p=mesh.point(vh)
@@ -247,7 +288,57 @@ class BasicPainter(Painter):
                     c = mesh.color(vh)
                 iv=0
                 self.appendlistdata_f3xyzf3nf4rgba(key,
-                    p[0], p[1], p[2],
-                    n[0], n[1], n[2],
-                    c[0], c[1], c[2],c[3])
+                                                   p[0], p[1], p[2],
+                                                   n[0], n[1], n[2],
+                                                   c[0], c[1], c[2],c[3])
+        return
+
+    def addMeshdata4oglmdl_bkp(self,key, geometry):
+        isGeometrySelected = not self._si.isEmpty()
+        if isGeometrySelected:
+            isGeometrySelected = self._si.geometry is geometry
+        mesh = geometry.mesh
+        if not mesh.has_face_normals(): # normals are necessary for correct lighting effect
+            mesh.request_face_normals()
+            mesh.update_face_normals();
+        nf = mesh.n_faces()
+        verts = mesh.vertices()
+        if not mesh.has_face_colors() and not mesh.has_vertex_colors():
+            c = [0.4, 1.0, 1.0, 1.0] #default color
+        for fh in mesh.faces():
+            n=mesh.normal(fh)
+            if isGeometrySelected and self._si.getFace() is fh:
+                c1 = [1.0, 0.0, 1.0, 1.0]
+                for vh in mesh.fv(fh):  # vertex handle
+                    vit = mesh.vv(vh)  # iterator
+                    p = mesh.point(vh)
+                    if mesh.has_vertex_colors():
+                        c = mesh.color(vh)
+                    iv = 0
+                    self.appendlistdata_f3xyzf3nf4rgba(key,
+                                                       p[0], p[1], p[2],
+                                                       n[0], n[1], n[2],
+                                                       c1[0], c1[1], c1[2], c1[3])
+                isGeometrySelected=False
+            else:
+                if mesh.has_face_colors():
+                   c= mesh.color(fh)
+                for vh in mesh.fv(fh): #vertex handle
+                    vit=mesh.vv(vh) # iterator
+                    p=mesh.point(vh)
+                    if mesh.has_vertex_colors():
+                        c = mesh.color(vh)
+                    iv=0
+                    self.appendlistdata_f3xyzf3nf4rgba(key,
+                        p[0], p[1], p[2],
+                        n[0], n[1], n[2],
+                        c[0], c[1], c[2],c[3])
+        return
+    @Slot()
+    def onSelected(self, si:SelectionInfo):
+        self._doSelection=True
+        self._si=si
+
+        #self.requestUpdateGL()
+        pass
 
