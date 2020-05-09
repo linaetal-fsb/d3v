@@ -3,7 +3,7 @@ from PySide2.QtGui import QOpenGLShaderProgram, QOpenGLShader
 from PySide2.QtGui import QOpenGLVersionProfile, QOpenGLContext
 from PySide2.QtGui import QSurfaceFormat
 from PySide2.QtWidgets import QMessageBox
-from painters import Painter, PainterSignals
+from painters import Painter
 from signals import Signals, DragInfo
 from painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
 from painterbasic.glhelp import GLEntityType
