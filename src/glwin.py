@@ -2,6 +2,8 @@ from PySide2.QtWidgets import QOpenGLWidget, QApplication
 from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpenGLDebugLogger, QOpenGLDebugMessage
 from PySide2.QtCore import Qt, QRect, Slot
 
+import uuid
+
 from signals import Signals, DragInfo
 from painterbasic.basicpainter import BasicPainter
 
@@ -54,9 +56,6 @@ class GlWin(QOpenGLWidget):
         for p in self.glPainters:
             p.paintGL()
 
-        for p in self._painters2update:
-            p.updateGL()
-        self._painters2update.clear()
         Signals.get().updateGL.emit()
 
     def initializeGL(self):
@@ -82,8 +81,7 @@ class GlWin(QOpenGLWidget):
 
     def addPainter(self, painter):
         self.glPainters.append(painter)
-        for p in self.glPainters:
-            p.requestUpdateGL.connect(self.onUpdateGLRequested)
+#        painter.requestUpdateGL.connect(self.onUpdateGLRequested)
 
     def mouseMoveEvent(self, event:QMouseEvent):
         self.dragInfo.update(event.pos())
@@ -194,8 +192,11 @@ class GlWin(QOpenGLWidget):
         print("{:3}: {}".format(self._glDebugCounter, msg.message()))
 
     @Slot()
-    def onUpdateGLRequested(self, p:Painter):
-        self._painters2update.append(p)
+    def onUpdateGLRequested(self, u:uuid.UUID):
+        for p in self.glPainters:
+            if p.guid == u:
+                self._painters2update.append(p)
+                break
 
 def rotation(m:QMatrix4x4):
     x = QVector3D(m.column(0))

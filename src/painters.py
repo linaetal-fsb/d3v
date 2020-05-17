@@ -1,13 +1,27 @@
 from PySide2.QtGui import QOpenGLFunctions
-from PySide2.QtCore import Signal, QObject
-from signal import Signals
+from PySide2.QtCore import Slot, Signal, QObject
+from PySide2.QtWidgets import QApplication
+
+import uuid
+
 from commands import Command
 from geometry import Geometry
+from signals import Signals
 
-class Painter(Command):
+class Painter(Command, QObject):
     def __init__(self):
         super().__init__()
         self.glf=0
+        self._guid = uuid.uuid4()
+
+    @property
+    def guid(self):
+        return self._guid
+
+    @Slot()
+    def onUpdateGL(self):
+        Signals.get().updateGL.disconnect(self.onUpdateGL)
+        self.updateGL()
 
     def updateGL(self):
         pass
@@ -34,10 +48,10 @@ class Painter(Command):
     def addGeometry(self, geometry:Geometry):
         pass
 
-    def requestUpdateGL(self):
-        Signals.get().requestUpdateGL.emit(self)
+    def requestGLUpdate(self):
+        Signals.get().updateGL.connect(self.onUpdateGL)
+        app = QApplication.instance()
+        app.mainFrame.update()
 
 
-class PainterSignals(QObject):
-    __metaclass__ = Painter
-    requestUpdateGL = Signal(Painter)
+
