@@ -5,7 +5,7 @@ from PySide2.QtCore import Qt, QRect, Slot
 import uuid
 
 from signals import Signals, DragInfo
-from painterbasic.basicpainter import BasicPainter
+#from painterbasic.basicpainter import BasicPainter
 
 from bounds import  BBox
 from selection import Selector
@@ -14,7 +14,8 @@ from painters import Painter
 
 
 class GlWin(QOpenGLWidget):
-    glPainters = [BasicPainter()]
+#    glPainters = [BasicPainter()]
+    glPainters = []
     mv = QMatrix4x4()
     proj = QMatrix4x4()
     vport = QRect()
