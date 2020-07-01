@@ -34,6 +34,7 @@ class App(QApplication):
 
     def run(self):
         self.loadAllModules()
+        self.mainFrame.addPainter(self.painters[0])
 
         for m in self.models:
             Signals.get().importGeometry.emit(m)
