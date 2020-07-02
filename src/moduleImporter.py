@@ -1,15 +1,14 @@
 import sys
 import os
 import importlib.util
+import importlib
 
 
 def importModule(moduleFileName:str):
-    moduleName = os.path.splitext(moduleFileName)[0]
-    spec = importlib.util.spec_from_file_location(moduleName, moduleFileName)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[moduleName] = module
-    spec.loader.exec_module(module)
-    return module
+    moduleName = os.path.split(moduleFileName)[1]
+    moduleName = os.path.splitext(moduleName)[0]
+    return importlib.import_module(moduleName)
+
 
 
 

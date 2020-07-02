@@ -34,6 +34,7 @@ class App(QApplication):
 
     def run(self):
         self.loadAllModules()
+        self.mainFrame.addPainter(self.painters[0])
 
         for m in self.models:
             Signals.get().importGeometry.emit(m)
@@ -47,8 +48,11 @@ class App(QApplication):
         modules2load = self.findAllPossibleModules(self.modulesPaths)
 
 #setting python path BEFORE importing modules
+        sys.path.append(os.path.dirname(__file__))
         for p in self.modulesPaths:
             sys.path.append(p)
+            for m in ('painters', 'io', 'commands'):
+                sys.path.append(os.path.join(p,m))
 
 
         self.iohandlers = []

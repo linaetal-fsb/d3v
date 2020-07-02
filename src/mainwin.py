@@ -31,11 +31,12 @@ class MainFrame(QMainWindow):
     def menuTools(self):
         return self._menuTools
 
+    @property
     def glWin(self):
         return self.glWin_;
 
     def addPainter(self, painter):
-        return self.glWin().addPainter()
+        return self.glWin.addPainter(painter)
 
     def onClose(self, checked:bool):
         self.close()

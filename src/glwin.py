@@ -5,7 +5,7 @@ from PySide2.QtCore import Qt, QRect, Slot
 import uuid
 
 from signals import Signals, DragInfo
-from painterbasic.basicpainter import BasicPainter
+#from painterbasic.basicpainter import BasicPainter
 
 from bounds import  BBox
 from selection import Selector
@@ -14,7 +14,8 @@ from painters import Painter
 
 
 class GlWin(QOpenGLWidget):
-    glPainters = [BasicPainter()]
+    painters2init = []
+    glPainters = []
     mv = QMatrix4x4()
     proj = QMatrix4x4()
     vport = QRect()
@@ -50,6 +51,9 @@ class GlWin(QOpenGLWidget):
                         -r * self.zoomFactor,r * self.zoomFactor,
                         -r, r)
 
+        for p in self.painters2init:
+            p.initializeGL()
+
         for p in self.glPainters:
             p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
 
@@ -79,9 +83,10 @@ class GlWin(QOpenGLWidget):
         for p in self.glPainters:
             p.resizeGL(w,h)
 
-    def addPainter(self, painter):
+    def addPainter(self, painter, initialize:bool = True):
         self.glPainters.append(painter)
-#        painter.requestUpdateGL.connect(self.onUpdateGLRequested)
+        if initialize:
+            self.painters2init.append(painter)
 
     def mouseMoveEvent(self, event:QMouseEvent):
         self.dragInfo.update(event.pos())
