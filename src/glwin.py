@@ -14,18 +14,6 @@ from painters import Painter
 
 
 class GlWin(QOpenGLWidget):
-    painters2init = []
-    glPainters = []
-    mv = QMatrix4x4()
-    proj = QMatrix4x4()
-    vport = QRect()
-    eye = QVector3D(0, 0, 10.0)  # position of the viewer
-    poi = QVector3D(0, 0, 0)  # point of interest
-    pan = QVector3D(0, 0, 0)
-    phi = 0.0  # rotation about X
-    theta = 0.0  # rotation about Y
-    zoomFactor = 1.0 #vrport
-
     _rotate = 1
     _zoom   = 2
     _pan    = 4
@@ -34,14 +22,22 @@ class GlWin(QOpenGLWidget):
         Qt.ShiftModifier: _zoom,
         Qt.ControlModifier: _pan,
     }
- 
-    _bb = BBox(empty = True)
-    _painters2update = []
 
-    #def __init__(self,  parent=None):
-        #pass
-        #QOpenGLWidget.__init__(self,parent)
-        #QOpenGLFunctions.__init__(self)
+    def __init__(self,  parent=None):
+        super().__init__(parent)
+        self._bb = BBox(empty = True)
+        self._painters2update = []
+        self.painters2init = []
+        self.glPainters = []
+        self.mv = QMatrix4x4()
+        self.proj = QMatrix4x4()
+        self.vport = QRect()
+        self.eye = QVector3D(0, 0, 10.0)  # position of the viewer
+        self.poi = QVector3D(0, 0, 0)  # point of interest
+        self.pan = QVector3D(0, 0, 0)
+        self.phi = 0.0  # rotation about X
+        self.theta = 0.0  # rotation about Y
+        self.zoomFactor = 1.0 #vrport
 
     def paintGL(self):
         ratio = float(self.vport.width())/float(self.vport.height())

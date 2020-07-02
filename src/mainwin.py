@@ -1,6 +1,7 @@
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtCore import QFile
 from PySide2.QtWidgets import QMainWindow, QMenu
+import os
 
 from glwin import GlWin
 from application import App
@@ -43,7 +44,8 @@ class MainFrame(QMainWindow):
 
 
 def create():
-    file = QFile('gl2.ui')
+    prefix = os.path.dirname(os.path.realpath(__file__))
+    file = QFile(os.path.join(prefix,'gl2.ui'))
     file.open(QFile.ReadOnly)
     loader = QUiLoader()
     loader.registerCustomWidget(GlWin)
