@@ -38,8 +38,12 @@ class GlWin(QOpenGLWidget):
         self.phi = 0.0  # rotation about X
         self.theta = 0.0  # rotation about Y
         self.zoomFactor = 1.0 #vrport
+        self._paintCounter = 0
+        self._selectCounter = 0
 
     def paintGL(self):
+        self._paintCounter += 1
+#        print("paint/select: {}/{}".format(self._paintCounter, self._selectCounter))
         ratio = float(self.vport.width())/float(self.vport.height())
         self.proj = QMatrix4x4()
         r = self._bb.radius * 2.0 if not self._bb.empty else 10.0
@@ -49,6 +53,7 @@ class GlWin(QOpenGLWidget):
 
         for p in self.painters2init:
             p.initializeGL()
+        self.painters2init.clear()
 
         for p in self.glPainters:
             p.setprogramvalues(self.proj, self.mv, self.mv.normalMatrix(), QVector3D(0, 0, 70))
@@ -105,6 +110,8 @@ class GlWin(QOpenGLWidget):
             P0 = self.dragInfo.mCurrentPos
             K = rotation(self.mv).conjugated().rotatedVector(QVector3D(0.0, 0.0, -1.0))
             s.select([P0,K], App.instance().geometry)
+            self._selectCounter += 1
+            self.update()
 
     @Slot()
     def onDrag(self, di:DragInfo):
@@ -186,6 +193,7 @@ class GlWin(QOpenGLWidget):
         self._bb =  self._bb + geometry.bbox
         for p in self.glPainters:
             p.addGeometry(geometry)
+        self.update()
 
     @Slot()
     def showGlDebugMessage(self, msg:QOpenGLDebugMessage):
