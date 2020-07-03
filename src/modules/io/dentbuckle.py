@@ -9,7 +9,6 @@ import csv
 class DentBuckleImporter(IOHandler):
     def __init__(self):
         super().__init__()
-        Signals.get().importGeometry.connect(self.importGeometry)
 
     def importGeometry(self, fileName):
         if len(fileName) < 1:
@@ -23,7 +22,7 @@ class DentBuckleImporter(IOHandler):
         Signals.get().geometryImported.emit(g)
 
     def getImportFormats(self):
-        return []
+        return (".debu")
 
 
 def createIOHandler():

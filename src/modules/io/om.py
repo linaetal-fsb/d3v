@@ -6,7 +6,6 @@ import openmesh as om
 class OpenMeshImporter(IOHandler):
     def __init__(self):
         super().__init__()
-        Signals.get().importGeometry.connect(self.importGeometry)
 
     def importGeometry(self, fileName):
         g = Geometry()
@@ -17,7 +16,9 @@ class OpenMeshImporter(IOHandler):
             return
         g.mesh = m
         Signals.get().geometryImported.emit(g)
+
     def getImportFormats(self):
-        return []
+        return (".obj", ".stl", ".ply", ".off")
+
 def createIOHandler():
     return OpenMeshImporter()

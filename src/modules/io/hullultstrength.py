@@ -8,7 +8,6 @@ import numpy as np
 class HullUltStrengthImporter(IOHandler):
     def __init__(self):
         super().__init__()
-        Signals.get().importGeometry.connect(self.importGeometry)
 
     def importGeometry(self, fileName):
         if len(fileName) < 1:
@@ -22,7 +21,7 @@ class HullUltStrengthImporter(IOHandler):
         Signals.get().geometryImported.emit(g)
 
     def getImportFormats(self):
-        return []
+        return (".hus")
 
 
 def createIOHandler():
