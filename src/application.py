@@ -13,6 +13,7 @@ class App(QApplication):
         self.setOrganizationName("testung")
         self.setApplicationName("d3v")
         Signals.get().geometryImported.connect(self.registerGeometry)
+        Signals.get().importGeometry.connect(self.doImportGeometry)
 
 # hardcoded path
 #        defModulesPaths = os.path.join(self.applicationDirPath(), 'modules')
@@ -179,6 +180,14 @@ class App(QApplication):
 
     def onExportGeometry(self, checked:bool):
         QMessageBox.warning(None, "Export geometry", "Exporting gemeoetry is not implemented")
+
+
+    def doImportGeometry(self, fname):
+        for h in self.iohandlers:
+            if h.supportsImport(fname):
+                h.importGeometry(fname)
+                return
+        QMessageBox.warning(None, "Import geometry", "No suitable iohandler found to import")
 
     @property
     def mainFrame(self):
