@@ -5,14 +5,16 @@ from PySide2.QtGui import QSurfaceFormat
 from PySide2.QtWidgets import QMessageBox
 from painters import Painter
 from signals import Signals, DragInfo
-from painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
-from painterbasic.glhelp import GLEntityType
+from glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f
+from glhelp import GLEntityType
 from OpenGL import GL
 from PySide2.QtCore import QCoreApplication
 from geometry import Geometry
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
+from PySide2.QtGui import QBrush, QPainter,QPen ,QPolygon,QColor,QFont
+from PySide2.QtCore import QRect,Qt
 
 class BasicPainter(Painter):
     def __init__(self):
@@ -34,8 +36,12 @@ class BasicPainter(Painter):
         # model / geometry
         self.addGeoCount=0
         Signals.get().selectionChanged.connect(self.onSelected)
+        self.paintDevice=0
 
-    def initializeGL(self):
+    def initializeGL(self,paintDevice):
+        self.paintDevice =paintDevice
+        self.width = paintDevice.vport.width()
+        self.height = paintDevice.vport.height()
         super().initializeGL()
         self.program = QOpenGLShaderProgram()
         # profile = QOpenGLVersionProfile()
@@ -77,6 +83,7 @@ class BasicPainter(Painter):
         for key, value in self._dentsvertsdata.items():
             value.drawvao(self.glf)
         self.program.release()
+
 
     def resizeGL(self, w:int, h:int):
         super().resizeGL(w,h)
