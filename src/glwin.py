@@ -5,7 +5,6 @@ from PySide2.QtCore import Qt, QRect, Slot
 import uuid
 
 from signals import Signals, DragInfo
-#from painterbasic.basicpainter import BasicPainter
 
 from bounds import  BBox
 from selection import Selector
@@ -52,7 +51,7 @@ class GlWin(QOpenGLWidget):
                         -r, r)
 
         for p in self.painters2init:
-            p.initializeGL()
+            p.initializeGL(self)
         self.painters2init.clear()
 
         for p in self.glPainters:
@@ -75,7 +74,7 @@ class GlWin(QOpenGLWidget):
         Signals.get().geometryAdded.connect(self.onGeometryAdded)
 
         for p in self.glPainters:
-            p.initializeGL()
+            p.initializeGL(self)
 
     def resizeGL(self, w:int, h:int):
         self.vport.setWidth(w)
