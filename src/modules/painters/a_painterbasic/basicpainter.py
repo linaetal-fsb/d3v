@@ -37,6 +37,10 @@ class BasicPainter(Painter):
         self.addGeoCount=0
         Signals.get().selectionChanged.connect(self.onSelected)
         self.paintDevice=0
+        self._tmp_proj=0
+        self._tmp_mv=0
+        self._tmp_normalMatrix=0
+        self._tmp_lightpos=0
 
     def initializeGL(self,paintDevice):
         self.paintDevice =paintDevice
@@ -65,6 +69,12 @@ class BasicPainter(Painter):
         self.program.release()
 
     def setprogramvalues(self, proj, mv, normalMatrix, lightpos):
+
+        self._tmp_proj = proj
+        self._tmp_mv = mv
+        self._tmp_normalMatrix = normalMatrix
+        self._tmp_lightpos = lightpos
+
         self.program.bind()
         self.program.setUniformValue(self.lightPosLoc, lightpos)
         self.program.setUniformValue(self.projMatrixLoc, proj)
@@ -252,9 +262,11 @@ class BasicPainter(Painter):
             for geometry in self._geo2Add:
                 self.delayedAddGeometry(geometry)
             self._geo2Add.clear()
+            self.setprogramvalues(self._tmp_proj, self._tmp_mv, self._tmp_normalMatrix, self._tmp_lightpos)
         if self._doSelection:
             self.addSelection()
             self._doSelection=False
+            self.setprogramvalues(self._tmp_proj, self._tmp_mv, self._tmp_normalMatrix, self._tmp_lightpos)
 
 
     def addSelData4oglmdl(self,key,si,geometry):
