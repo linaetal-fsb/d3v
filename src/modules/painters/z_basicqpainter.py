@@ -24,11 +24,10 @@ class BasicQPainter(Painter):
         self.width=0
         self.height=0
         self.colorRect = QColor(100, 100, 255, 255)
-        self.colorText = QColor(255, 0, 0, 255)
+        self.colorText = QColor(0, 0, 0, 255)
         self.infoFontName = "Times"
         self.infoFontSize = 10
-        self.infoFontType = QFont.Normal
-        self.painter=0
+        self.infoFontType = QFont.Bold
         self.paintDevice =0
 
     def initializeGL(self,paintDevice):
@@ -49,7 +48,6 @@ class BasicQPainter(Painter):
             return
         painter = QPainter(self.paintDevice)
         self.glf.glDisable(GL.GL_CULL_FACE)
-        painter.begin(self.paintDevice)
         font= QFont(self.infoFontName, self.infoFontSize, self.infoFontType)
         painter.setFont(font)
         pen=QPen(self.colorText, 1)
