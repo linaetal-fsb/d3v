@@ -41,6 +41,7 @@ class GlWin(QOpenGLWidget):
         self._selectCounter = 0
 
     def paintGL(self):
+        Signals.get().updateGL.emit()
         self._paintCounter += 1
 #        print("paint/select: {}/{}".format(self._paintCounter, self._selectCounter))
         ratio = float(self.vport.width())/float(self.vport.height())
@@ -60,7 +61,7 @@ class GlWin(QOpenGLWidget):
         for p in self.glPainters:
             p.paintGL()
 
-        Signals.get().updateGL.emit()
+
 
     def initializeGL(self):
         self._glDebugCounter = 0

@@ -76,10 +76,10 @@ class BasicQPainter(Painter):
     def addGeometry(self, geometry:Geometry):
         self.drawInfo = True
         if isinstance(geometry.mesh, om.TriMesh):
-            self.info = "Tria Mesh"
+            self.info = self.info+ "Tria Mesh"
         else:
-            self.info = "Poly Mesh"
-        self.info = self.info + "; nf = " + str(geometry.mesh.n_faces())
+            self.info = self.info+ "Poly Mesh"
+        self.info = self.info + "; nf = " + str(geometry.mesh.n_faces())+"; "
         #self.requestGLUpdate()
 
 def createPainter():

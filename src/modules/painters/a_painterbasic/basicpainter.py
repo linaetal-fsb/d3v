@@ -36,10 +36,6 @@ class BasicPainter(Painter):
         self.addGeoCount=0
         Signals.get().selectionChanged.connect(self.onSelected)
         self.paintDevice=0
-        self._tmp_proj=0
-        self._tmp_mv=0
-        self._tmp_normalMatrix=0
-        self._tmp_lightpos=0
 
     def initializeGL(self,paintDevice):
         self.paintDevice =paintDevice
@@ -68,12 +64,6 @@ class BasicPainter(Painter):
         self.program.release()
 
     def setprogramvalues(self, proj, mv, normalMatrix, lightpos):
-
-        self._tmp_proj = proj
-        self._tmp_mv = mv
-        self._tmp_normalMatrix = normalMatrix
-        self._tmp_lightpos = lightpos
-
         self.program.bind()
         self.program.setUniformValue(self.lightPosLoc, lightpos)
         self.program.setUniformValue(self.projMatrixLoc, proj)
@@ -82,7 +72,6 @@ class BasicPainter(Painter):
         self.program.release()
 
     def paintGL(self):
-        self.updateGeometry()
         super().paintGL()
         self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         self.glf.glEnable(GL.GL_DEPTH_TEST)
@@ -99,6 +88,7 @@ class BasicPainter(Painter):
 
     def updateGL(self):
         super().updateGL()
+        self.updateGeometry()
 
     def resetmodel(self):
         """!
@@ -228,7 +218,7 @@ class BasicPainter(Painter):
 
     def addGeometry(self, geometry:Geometry):
         self._geo2Add.append(geometry)
-        #self.requestUpdateGL()
+        self.requestGLUpdate()
 
     def delayedAddGeometry(self, geometry:Geometry):
         self.addGeoCount= self.addGeoCount+1
@@ -261,11 +251,9 @@ class BasicPainter(Painter):
             for geometry in self._geo2Add:
                 self.delayedAddGeometry(geometry)
             self._geo2Add.clear()
-            self.setprogramvalues(self._tmp_proj, self._tmp_mv, self._tmp_normalMatrix, self._tmp_lightpos)
         if self._doSelection:
             self.addSelection()
             self._doSelection=False
-            self.setprogramvalues(self._tmp_proj, self._tmp_mv, self._tmp_normalMatrix, self._tmp_lightpos)
 
 
     def addSelData4oglmdl(self,key,si,geometry):
@@ -356,7 +344,6 @@ class BasicPainter(Painter):
     def onSelected(self, si:SelectionInfo):
         self._doSelection=True
         self._si=si
-
-        #self.requestUpdateGL()
+        self.requestGLUpdate()
         pass
 
