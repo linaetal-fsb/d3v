@@ -42,6 +42,7 @@ class Selector(QObject):
             while i < len(sis):
                 if  sis[i].getDistance() < si.getDistance():
                     si=sis[i]
+                i=i+1
             # nakon sto je selekcija odradjena
             # fill in sve podatke u SelectionInfo object
             # selected je selekcionirana geometrija
