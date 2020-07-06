@@ -18,8 +18,7 @@ from PySide2.QtCore import QRect,Qt
 
 class BasicPainter(Painter):
     def __init__(self):
-        #super().__init__()
-        super(Painter, self).__init__()
+        super().__init__()
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
         self._geo2Add = []
         self._doSelection=False
