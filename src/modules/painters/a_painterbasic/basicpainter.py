@@ -36,11 +36,9 @@ class BasicPainter(Painter):
         # model / geometry
         self.addGeoCount=0
         Signals.get().selectionChanged.connect(self.onSelected)
-        self.paintDevice=0
 
     def initializeGL(self):
         paintDevice = QApplication.instance().mainFrame.glWin
-        self.paintDevice =paintDevice
         self.width = paintDevice.vport.width()
         self.height = paintDevice.vport.height()
         super().initializeGL()
