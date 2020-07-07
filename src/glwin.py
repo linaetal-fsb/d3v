@@ -75,7 +75,7 @@ class GlWin(QOpenGLWidget):
         Signals.get().geometryAdded.connect(self.onGeometryAdded)
 
         for p in self.glPainters:
-            p.initializeGL(self)
+            p.initializeGL()
 
     def resizeGL(self, w:int, h:int):
         self.vport.setWidth(w)
