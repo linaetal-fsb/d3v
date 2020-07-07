@@ -37,7 +37,8 @@ class BasicPainter(Painter):
         Signals.get().selectionChanged.connect(self.onSelected)
         self.paintDevice=0
 
-    def initializeGL(self,paintDevice):
+    def initializeGL(self):
+        paintDevice = QApplication.instance().mainFrame.glWin
         self.paintDevice =paintDevice
         self.width = paintDevice.vport.width()
         self.height = paintDevice.vport.height()
@@ -346,4 +347,3 @@ class BasicPainter(Painter):
         self._si=si
         self.requestGLUpdate()
         pass
-
