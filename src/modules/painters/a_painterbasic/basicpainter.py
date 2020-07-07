@@ -15,6 +15,7 @@ import numpy as np
 from selinfo import SelectionInfo
 from PySide2.QtGui import QBrush, QPainter,QPen ,QPolygon,QColor,QFont
 from PySide2.QtCore import QRect,Qt
+from PySide2.QtWidgets import QApplication
 
 class BasicPainter(Painter):
     def __init__(self):
