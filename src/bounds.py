@@ -13,13 +13,8 @@ class BBox():
         if not len(points):
             return BBox(empty = True)
 
-        minc = np.array(points[0])
-        maxc = np.array(points[0])
-
-        for p in points:
-            for i in range(3):
-                minc[i] = min(minc[i], p[i])
-                maxc[i] = max(maxc[i], p[i])
+        minc = np.amin(points,axis=0)
+        maxc = np.amax(points,axis=0)
 
         return cls(minc, maxc)
 
@@ -35,12 +30,8 @@ class BBox():
         if other.empty:
             return self
 
-        maxc = np.array([0,0,0])
-        minc = np.array([0,0,0])
-        for i in range(3):
-            maxc[i] = max(self.maxCoord[i], other.maxCoord[i])
-            minc[i] = min(self.minCoord[i], other.minCoord[i])
-
+        maxc = np.maximum(self.maxCoord, other.maxCoord)
+        minc = np.minimum(self.minCoord, other.minCoord)
         return BBox(minc, maxc)
 
     def __or__(self, other):
@@ -52,12 +43,8 @@ class BBox():
         if self.empty or other.empty:
             return BBox(empty = True)
 
-
-        maxc = np.array([0,0,0])
-        minc = np.array([0,0,0])
-        for i in range(3):
-            maxc[i] = min(self.maxCoord[i], other.maxCoord[i])
-            minc[i] = max(self.minCoord[i], other.minCoord[i])
+        maxc = np.minimum(self.maxCoord, other.maxCoord)
+        minc = np.maximum(self.minCoord, other.minCoord)
 
         empty = any(minc > maxc)
         return BBox(minc, maxc, empty)
