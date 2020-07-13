@@ -13,6 +13,7 @@ from selinfo import SelectionInfo
 from PySide2.QtGui import QBrush, QPainter,QPen ,QPolygon,QColor
 import PySide2.QtCore
 from OpenGL import GL
+from PySide2.QtWidgets import QApplication
 
 
 class BasicQPainter(Painter):
@@ -30,7 +31,8 @@ class BasicQPainter(Painter):
         self.infoFontType = QFont.Bold
         self.paintDevice =0
 
-    def initializeGL(self,paintDevice):
+    def initializeGL(self):
+        paintDevice = QApplication.instance().mainFrame.glWin
         super().initializeGL()
         self.paintDevice = paintDevice
         self.width = paintDevice.vport.width()
@@ -84,6 +86,5 @@ class BasicQPainter(Painter):
 
 def createPainter():
     return BasicQPainter()
-
 
 

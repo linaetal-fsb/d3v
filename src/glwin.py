@@ -52,7 +52,7 @@ class GlWin(QOpenGLWidget):
                         -r, r)
 
         for p in self.painters2init:
-            p.initializeGL(self)
+            p.initializeGL()
         self.painters2init.clear()
 
         for p in self.glPainters:
