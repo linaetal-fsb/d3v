@@ -9,10 +9,10 @@ from PySide2.QtGui import QOpenGLBuffer, QOpenGLVertexArrayObject
 from PySide2.QtGui import QOpenGLContext
 from shiboken2.shiboken2 import VoidPtr
 
-from painterbasic.glhelp import GLDataType
+from glhelp import GLDataType
 
-from painterbasic.glvertdata import VertDataCollector
-from painterbasic.glvertdata import VertDataSingleChannel
+from glvertdata import VertDataCollector
+from glvertdata import VertDataSingleChannel
 
 
 # class that use Coordinates and normals
