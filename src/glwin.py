@@ -3,6 +3,7 @@ from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpen
 from PySide2.QtCore import Qt, QRect, Slot
 
 import uuid
+import numpy as np
 
 from signals import Signals, DragInfo
 
@@ -47,6 +48,8 @@ class GlWin(QOpenGLWidget):
         ratio = float(self.vport.width())/float(self.vport.height())
         self.proj = QMatrix4x4()
         r = self._bb.radius * 2.0 if not self._bb.empty else 10.0
+        if not self._bb.empty:
+            r += np.linalg.norm(self._bb.center)
         self.proj.ortho(-r*ratio * self.zoomFactor,r*ratio * self.zoomFactor,
                         -r * self.zoomFactor,r * self.zoomFactor,
                         -r, r)
