@@ -8,6 +8,7 @@ import numpy as np
 
 from glhelp import GLEntityType, GLDataType, GLHelpFun
 
+
 class VertDataCollector():
     """!
     VertDataCollector class  - base class
@@ -15,6 +16,7 @@ class VertDataCollector():
     Data collector class collects all vertex data necessary for drawing a group of entities that share the same type.
     Possible primitive types are defined by the enum (pyD3VOGLModel.GLEntityType)
     """
+
     def __init__(self, enttype):
         """!
         VertDataCollector constructor
@@ -30,6 +32,7 @@ class VertDataCollector():
         @retval: (\b int)OpenGL primitive type constant
         """
         return self._enttype.value
+
     def _getnumver4enttype(self):
         """!
         Get number of vertices for the entity type (pyD3VOGLModel.GLEntityType)
@@ -53,7 +56,7 @@ class VertDataCollector():
         """
         return None
 
-    def appendsize(self,numents):
+    def appendsize(self, numents):
         """
         Append  size with the specified number of entities
 
@@ -101,11 +104,10 @@ class VertDataCollectorCoord3fColor4ub(VertDataCollector):
     Three floats are used for the position (xyz), while four ubyte are used for color (r,g,b,a)
     Possible primitive types are defined by the enum (pyD3VOGLModel.GLEntityType)
     """
+
     def __init__(self, enttype):
         """!
         VertDataCollectorCoord3fColor4ub constructor
-
-
         """
         super().__init__(enttype)
         self._cords = 0
@@ -137,7 +139,7 @@ class VertDataCollectorCoord3fColor4ub(VertDataCollector):
         """
         self._ivert += 1
         self._cords.add_Data3(x, y, z)
-        self._colors.add_Data4(r*255, g*255, b*255, 255)
+        self._colors.add_Data4(r * 255, g * 255, b * 255, 255)
         return self._ivert
 
     def allocatememory(self):
@@ -158,7 +160,6 @@ class VertDataCollectorCoord3fColor4ub(VertDataCollector):
         """
         return self._numvertstotal
 
-
     def free(self):
         """!
         Free vertex data channels memory
@@ -167,7 +168,6 @@ class VertDataCollectorCoord3fColor4ub(VertDataCollector):
         """
         self._cords.free()
         self._colors.free()
-
 
     def clone(self):
         """!
@@ -180,7 +180,6 @@ class VertDataCollectorCoord3fColor4ub(VertDataCollector):
         return vdc
 
 
-
 class VertDataSingleChannel():
     """!
     VertDataSingleChannel class
@@ -189,10 +188,10 @@ class VertDataSingleChannel():
     Possible data types are defined by the enum (GLDataType)
     Size of the memory is determined in the constructor.
     """
+
     def __init__(self, dataType, nvertdata, nvert):
         """
         VertDataSingleChannel constructor
-
 
         @param dataType: (GLDataType) data type
         @param nvertdata: number of data for each vertex
@@ -203,8 +202,8 @@ class VertDataSingleChannel():
         self._nd4v = nvertdata
         self._nv = nvert
         self._datatype = dataType
-        self._dtsize =GLHelpFun.datatypesize(self._datatype)
-        self.m_data = np.empty(self._nv * self._nd4v, dtype= GLHelpFun.numpydatatype(dataType))
+        self._dtsize = GLHelpFun.datatypesize(self._datatype)
+        self.m_data = np.empty(self._nv * self._nd4v, dtype=GLHelpFun.numpydatatype(dataType))
 
     def constData(self):
         return self.m_data.tobytes()
@@ -216,7 +215,7 @@ class VertDataSingleChannel():
         return self._i
 
     def free(self):
-        self.m_data=None
+        self.m_data = None
 
     def numvertdata(self):
         return self._nd4v
@@ -225,10 +224,10 @@ class VertDataSingleChannel():
         return self._nv
 
     def datatypesize(self):
-        return  self._dtsize
+        return self._dtsize
 
     def memsizetotal(self):
-        return self.count()*self._dtsize
+        return self.count() * self._dtsize
 
     def memsizeonevert(self):
         return self._nd4v * self._dtsize
@@ -252,6 +251,19 @@ class VertDataSingleChannel():
         self.m_data[self._i] = d3
         self._i += 1
 
+    def add_Data3_with_idx(self, d1, d2, d3, idx):
+        # self.m_data[idx: idx+3] = d1, d2, d3
+        self.m_data[idx] = d1
+        self.m_data[idx + 1] = d2
+        self.m_data[idx + 2] = d3
+
+    def add_Data4_with_idx(self, d1, d2, d3, d4, idx):
+        # self.m_data[idx: idx+4] = d1, d2, d3, d4
+        self.m_data[idx] = d1
+        self.m_data[idx + 1] = d2
+        self.m_data[idx + 2] = d3
+        self.m_data[idx + 3] = d4
+
     def add_Data4(self, d1, d2, d3, d4):
         self.m_data[self._i] = d1
         self._i += 1
@@ -262,5 +274,9 @@ class VertDataSingleChannel():
         self.m_data[self._i] = d4
         self._i += 1
 
+    def set_Data(self, data):
+        self.m_data = data
+        self._i = len(data)
 
-
+    def update_idx(self):
+        self._i = len(self.m_data)
