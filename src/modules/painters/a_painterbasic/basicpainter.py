@@ -59,8 +59,8 @@ class BasicPainter(Painter):
         # self.selType = SelModes.FACET_WF  # 1 - facet by wireframe
         # self.selType = SelModes.FULL_FILL_SHADER # 2 - full geometry by shader2
         # self.selType = SelModes.FACET_FILL  # Facet by filled triangle with z-fight compensation
-        # self.selType = SelModes.FULL_WF  # Full geometry by PolygonMode
-        self.selType = SelModes.FACET_FILL_GLOFFSET
+        self.selType = SelModes.FULL_WF  # Full geometry by PolygonMode
+        # self.selType = SelModes.FACET_FILL_GLOFFSET
         self._showBack = False
         self._multFactor = 1
         self.showBack = True
