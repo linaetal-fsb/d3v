@@ -7,6 +7,14 @@ from rayTracing import dmnsn_aabb
 
 
 class SubDivBoxTree(dmnsn_aabb):
+    #
+    # ****************************************
+    #*                                       *
+    #*                                       *
+    #*                                       *
+    #  ***************************************
+    #
+    #
     def __init__(self, mesh):
         super().__init__()
         self.mesh = mesh

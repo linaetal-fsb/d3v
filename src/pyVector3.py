@@ -1,3 +1,5 @@
+
+
 class pyvector3:
     def __init__(self):
         self._vec3 = [0, 0, 0]
@@ -6,6 +8,12 @@ class pyvector3:
         self._vec3[0] = vecQt.x()
         self._vec3[1] = vecQt.y()
         self._vec3[2] = vecQt.z()
+
+    @staticmethod
+    def initFromQt(vecQt):
+        v = pyvector3()
+        v.setFromQt(vecQt)
+        return v
 
     def setFromNp(self, vecnp):
         self._vec3[0] = vecnp[0]

@@ -31,10 +31,12 @@ from pyVector3 import pyvector3
 
 class dmnsn_ray:
     def __init__(self, los):
-        self._x0 = pyvector3()
-        self._x0.setFromQt(los[0])  # P0
-        self._n = pyvector3()
-        self._n.setFromQt(los[1])  # K
+        self._x0 = pyvector3.initFromQt(los[0])
+        # self._x0 = pyvector3()
+        # self._x0.setFromQt(los[0])  # P0
+        self._n = pyvector3.initFromQt(los[1])
+        # self._n = pyvector3()
+        # self._n.setFromQt(los[1])  # K
 
     @property
     def x0(self):

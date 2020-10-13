@@ -77,6 +77,7 @@ class DefaultSelector(Selector):
         chosen_points = points[chosen_fv_indices]
 
         ds = self.rayIntersectsTriangleMollerTrumboreSDBT(ray, chosen_points[:, 0], chosen_points[:, 1], chosen_points[:, 2])
+
         mask = ds != infinity
         intersectedFacets = fhlist[mask]
         intersectedFacetsDistances = ds[mask]
