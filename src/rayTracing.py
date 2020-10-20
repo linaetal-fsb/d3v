@@ -1,129 +1,173 @@
-# /*************************************************************************
-#  * Copyright (C) 2012-2014 Tavian Barnes <tavianator@tavianator.com>     *
-#  * https://github.com/tavianator/dimension                               *
-#  * Copyright (C) 2020 Pero Prebeg <Pero.Prebeg@fsb.hr>                   *
-#  *                                                                       *
-#  * The content of this file is part of The Dimension Library. The        *
-#  * original C Code of The Dimensions Library has been translated to      *
-#  * Python code, further accomodations have been made to emphasize the    *
-#  * purpose of d3v.                                                       *
-#  *                                                                       *
-#  * The Dimension Library is free software; you can redistribute it and/  *
-#  * or modify it under the terms of the GNU Lesser General Public License *
-#  * as published by the Free Software Foundation; either version 3 of the *
-#  * License, or (at your option) any later version.                       *
-#  *                                                                       *
-#  * The Dimension Library is distributed in the hope that it will be      *
-#  * useful, but WITHOUT ANY WARRANTY; without even the implied warranty   *
-#  * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU  *
-#  * Lesser General Public License for more details.                       *
-#  *                                                                       *
-#  * You should have received a copy of the GNU Lesser General Public      *
-#  * License along with this program.  If not, see                         *
-#  * <http://www.gnu.org/licenses/>.                                       *
-#  *************************************************************************/
-
-import math
-
 from bounds import BBox
-from pyVector3 import pyvector3
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 
-class dmnsn_ray:
-    def __init__(self, los):
-        self._x0 = pyvector3.initFromQt(los[0])
-        # self._x0 = pyvector3()
-        # self._x0.setFromQt(los[0])  # P0
-        self._n = pyvector3.initFromQt(los[1])
-        # self._n = pyvector3()
-        # self._n.setFromQt(los[1])  # K
+class Ray:
+    def __init__(self, o, d):
+        """
+        Class describing a n-dimensional ray with ability to propagate
+        :param o: ray origin
+        :param d: ray propagation delta
+        """
+        self.o = np.array(o)
+        self.d = np.array(d)
+        self.d_inv = 1 / self.d
 
-    @property
-    def x0(self):
-        return self._x0
-
-    @property
-    def n(self):
-        return self._n
+    def propagate(self, t):
+        return self.o + self.d * t
 
 
-class dmnsn_optimized_ray:
-    def __init__(self, ray: dmnsn_ray):
-        self._x0 = ray.x0
-        self._n_inv = pyvector3()
-        self._n_inv.setFromScalars((1.0 / ray.n.X) if ray.n.X != 0 else math.inf,
-                                   (1.0 / ray.n.Y) if ray.n.X != 0 else math.inf,
-                                   (1.0 / ray.n.Z) if ray.n.Z != 0 else math.inf)
+class Box3DIntersection(BBox):
+    def __init__(self, minCoord=None, maxCoord=None):
+        super().__init__(minCoord, maxCoord)
 
-    @property
-    def x0(self):
-        return self._x0
+    def setFromBBox(self, bbox: BBox):
+        self._minCoord = bbox.minCoord
+        self._maxCoord = bbox.maxCoord
 
-    @property
-    def n_inv(self):
-        return self._n_inv
+    def intersectsWithRay(self, o, d):
+        """
+        Determines if a ray defined by (o, d) intersects with the bounding box defined in this class. Algorithm
+        originated from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
 
+        :param o: ray origin
+        :param d: ray propagation delta: d = [dx, dy, dz]
+        :return: True if ray intersects with bounding box and false otherwise
+        """
+        ray = Ray(o, d)
+        txmin = self.rayIntersection(self.minCoord[0], ray.o[0], ray.d_inv[0])
+        txmax = self.rayIntersection(self.maxCoord[0], ray.o[0], ray.d_inv[0])
 
-class dmnsn_aabb:
-    def __init__(self):
-        self._min = pyvector3()
-        self._max = pyvector3()
+        tymin = self.rayIntersection(self.minCoord[1], ray.o[1], ray.d_inv[1])
+        tymax = self.rayIntersection(self.maxCoord[1], ray.o[1], ray.d_inv[1])
 
-    def setFromBBox(self, box: BBox):
-        self._min.setFromNp(box.minCoord)
-        self._max.setFromNp(box.maxCoord)
+        tzmin = self.rayIntersection(self.minCoord[2], ray.o[2], ray.d_inv[2])
+        tzmax = self.rayIntersection(self.maxCoord[2], ray.o[2], ray.d_inv[2])
 
-    def dmnsn_ray_box_intersection(self, optray: dmnsn_optimized_ray, t):
-        # This is actually correct, even though it appears not to handle edge cases
-        # (ray.n.{x,y,z} == 0).  It works because the infinities that result from
-        # dividing by zero will still behave correctly in the comparisons.  Rays
-        # which are parallel to an axis and outside the box will have tmin == inf
-        # or tmax == -inf, while rays inside the box will have tmin and tmax
-        # unchanged.
+        # Swap min max values corresponding to direction of ray
+        if ray.d[0] < 0:
+            _txmin, _txmax = txmin, txmax
+            txmin = _txmax
+            txmax = _txmin
 
-        tx1 = (self.min.X - optray.x0.X) * optray.n_inv.X
-        tx2 = (self.max.X - optray.x0.X) * optray.n_inv.X
+        if ray.d[1] < 0:
+            _tymin, _tymax = tymin, tymax
+            tymin = _tymax
+            tymax = _tymin
 
-        tmin = min(tx1, tx2)
-        tmax = max(tx1, tx2)
+        if ray.d[2] < 0:
+            _tzmin, _tzmax = tzmin, tzmax
+            tzmin = _tzmax
+            tzmax = _tzmin
 
-        ty1 = (self.min.Y - optray.x0.Y) * optray.n_inv.Y
-        ty2 = (self.max.Y - optray.x0.Y) * optray.n_inv.Y
+        # ray does not hit the box in x or y direction
+        if (txmin > tymax) | (tymin > tymax):
+            return False
 
-        tmin = max(tmin, min(ty1, ty2))
-        tmax = min(tmax, max(ty1, ty2))
+        tmin = max(txmin, tymin, tzmin)
+        tmax = min(txmax, tymax, tzmax)
 
-        tz1 = (self.min.Z - optray.x0.Z) * optray.n_inv.Z
-        tz2 = (self.max.Z - optray.x0.Z) * optray.n_inv.Z
+        # ray does not hit the box in z direction
+        if (tmin > tzmax) | (tzmin > tmax):
+            return False
 
-        tmin = max(tmin, min(tz1, tz2))
-        tmax = min(tmax, max(tz1, tz2))
+        return (tmin > 0.0) & (tmax > 0.0)
 
-        return tmax >= max(0.0, tmin) and tmin < t
+    def setMinCoord(self, minCoord):
+        self._minCoord = minCoord
+
+    def setMaxCoord(self, maxCoord):
+        self._maxCoord = maxCoord
+
+    @staticmethod
+    def rayIntersection(bound, ray_origin, ray_delta_inv):
+        """
+        Finds parameter t, with which a 1D ray defined by (o, d) intersects with bound. The ray propagates by formula:
+        f(t) = ray_origin + 1 / ray_delta_inv * t
+
+        :param bound: Boundary of bounding box
+        :param ray_origin: Origin of 1D ray
+        :param ray_delta_inv: Propagation delta of 1D ray
+        :return: Parameter t corresponding to intersection of ray and bound
+        """
+        t = (bound - ray_origin) * ray_delta_inv
+        return t
 
     def isIn_array(self, points):
-        isIn_bool_array0 = (self.min._vec3[0] < points[:, 0]) & (points[:, 0] < self.max._vec3[0])
-        isIn_bool_array1 = (self.min._vec3[1] < points[:, 1]) & (points[:, 1] < self.max._vec3[1])
-        isIn_bool_array2 = (self.min._vec3[2] < points[:, 2]) & (points[:, 2] < self.max._vec3[2])
+        isIn_bool_array0 = (self.minCoord[0] < points[:, 0]) & (points[:, 0] < self.maxCoord[0])
+        isIn_bool_array1 = (self.minCoord[1] < points[:, 1]) & (points[:, 1] < self.maxCoord[1])
+        isIn_bool_array2 = (self.minCoord[2] < points[:, 2]) & (points[:, 2] < self.maxCoord[2])
         isIn_bool_array_final = isIn_bool_array0 & isIn_bool_array1 & isIn_bool_array2
         return isIn_bool_array_final
 
-    def isIn(self, point: pyvector3):
-        """
-        Not used anymore, but kept in code for completeness
-        """
-        for i in range(3):
-            if (self.min._vec3[i] > point._vec3[i]):
-                return False
-            if (self.max._vec3[i] < point._vec3[i]):
-                return False
 
-        return True
+if __name__ == "__main__":
+    import random
 
-    @property
-    def min(self):
-        return self._min
+    def plot_bbox(ax, b0x, b0y, b0z, b1x, b1y, b1z):
+        color = 'blue'
+        ax.plot([b0x, b0x], [b0y, b0y], [b0z, b1z], c=color)
+        ax.plot([b0x, b0x], [b1y, b1y], [b0z, b1z], c=color)
+        ax.plot([b1x, b1x], [b0y, b0y], [b0z, b1z], c=color)
+        ax.plot([b1x, b1x], [b1y, b1y], [b0z, b1z], c=color)
 
-    @property
-    def max(self):
-        return self._max
+        ax.plot([b0x, b0x], [b0y, b1y], [b0z, b0z], c=color)
+        ax.plot([b0x, b0x], [b0y, b1y], [b1z, b1z], c=color)
+        ax.plot([b1x, b1x], [b0y, b1y], [b0z, b0z], c=color)
+        ax.plot([b1x, b1x], [b0y, b1y], [b1z, b1z], c=color)
+
+        ax.plot([b0x, b1x], [b0y, b0y], [b0z, b0z], c=color)
+        ax.plot([b0x, b1x], [b0y, b0y], [b1z, b1z], c=color)
+        ax.plot([b0x, b1x], [b1y, b1y], [b0z, b0z], c=color)
+        ax.plot([b0x, b1x], [b1y, b1y], [b1z, b1z], c=color)
+
+    b0x = 2
+    b0y = 2
+    b0z = 2
+    b1x = 4
+    b1y = 4
+    b1z = 4
+
+    bbox = Box3DIntersection([b0x, b0y, b0z], [b1x, b1y, b1z])
+
+    n = 25
+    t = 3
+    ps_start = np.zeros((n, 3))
+    ps_end = np.zeros((n, 3))
+    colors = []
+    for i in range(n):
+        ox = 1
+        oy = 1
+        oz = 1
+        dx = random.random() * 2
+        dy = random.random() * 2
+        dz = random.random() * 2
+
+        o = [ox, oy, oz]
+        d = [dx, dy, dz]
+
+        ray = Ray(o, d)
+
+        ps_start[i] = o
+        ps_end[i] = ray.propagate(t)
+
+        ray_intersects = bbox.intersectsWithRay(ray.o, ray.d)
+        if ray_intersects:
+            colors.append('green')
+        else:
+            colors.append('red')
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    for idx, (p_start, p_end) in enumerate(zip(ps_start, ps_end)):
+        xs = p_start[0], p_end[0]
+        ys = p_start[1], p_end[1]
+        zs = p_start[2], p_end[2]
+        ax.plot(xs, ys, zs, colors[idx])
+
+    plot_bbox(ax, b0x, b0y, b0z, b1x, b1y, b1z)
+
+    plt.show()
