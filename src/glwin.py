@@ -40,6 +40,7 @@ class GlWin(QOpenGLWidget):
         self.zoomFactor = 1.0 #vrport
         self._paintCounter = 0
         self._selectCounter = 0
+        self._selector = DefaultSelector()
 
     def paintGL(self):
         Signals.get().updateGL.emit()
@@ -109,10 +110,9 @@ class GlWin(QOpenGLWidget):
 
         # mouse click
         if event.button() == Qt.LeftButton and self.dragInfo.wCurrentPos == self.dragInfo.wStartPos:
-            s = DefaultSelector()
             P0 = self.dragInfo.mCurrentPos
             K = rotation(self.mv).conjugated().rotatedVector(QVector3D(0.0, 0.0, -1.0))
-            s.select([P0,K], App.instance().geometry)
+            self.selector.select([P0,K], App.instance().geometry)
             self._selectCounter += 1
             self.update()
 
@@ -209,6 +209,14 @@ class GlWin(QOpenGLWidget):
             if p.guid == u:
                 self._painters2update.append(p)
                 break
+
+    @property
+    def selector(self):
+        return self._selector
+
+    @selector.setter
+    def selector(self, newSelector):
+        self._selector = newSelector
 
 def rotation(m:QMatrix4x4):
     x = QVector3D(m.column(0))
