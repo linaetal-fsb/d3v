@@ -14,12 +14,6 @@ class Geometry(QObject):
             self._guid = uuid.uuid4()
 
         self._mesh = om.TriMesh()
-        self.subdivboxtree = 0
-
-    def createSubdivisonBoxTree(self):
-        from subDivBoxTree import SubDivBoxTree
-        self.subdivboxtree = SubDivBoxTree(self._mesh)
-        self.subdivboxtree.createTreeRoot(self.bbox)
 
     @property
     def guid(self):
@@ -36,7 +30,6 @@ class Geometry(QObject):
     @mesh.setter
     def mesh(self, newMesh):
         self._mesh = newMesh
-        self.createSubdivisonBoxTree()
 
     @property
     def bbox(self):
