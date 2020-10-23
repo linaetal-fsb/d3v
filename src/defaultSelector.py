@@ -5,19 +5,39 @@ import openmesh as om
 import numpy as np
 from selection import Selector
 import time
+from subDivBoxTree import SubDivBoxTree
 
 
 class DefaultSelector(Selector):
     def __init__(self):
         super().__init__()
+        self.subDivBoxTrees = {}
 
-    def select(self, los, geometry):
+    def addGeometry(self, geometry):
+        """
+        Creates a SubDivBoxTree object for a given geometry. The SubDixBoxTree object is saved internally in a dict.
+        :param geometry: geometry of type Geometry
+        :return:
+        """
+        subDivBoxTree = SubDivBoxTree(geometry.mesh)
+        subDivBoxTree.createTreeRoot(geometry.bbox)
+        self.subDivBoxTrees[geometry.guid] = subDivBoxTree
+
+    def removeGeometry(self, geometry):
+        """
+        Removes the SubDixBoxTree which corresponds to geometry from the dict.
+        :param geometry: geometry of type Geometry
+        :return:
+        """
+        self.subDivBoxTrees.pop(geometry.guid)
+
+    def select(self, los, geometries):
         tSS = time.perf_counter()
-        self.selectList(los, geometry)
+        self.selectList(los, geometries)
         dtS = time.perf_counter() - tSS
         print("Selection time, s:", dtS)
 
-    def selectList(self, los, geometry):
+    def selectList(self, los, geometries):
         """
         Determines if a ray defined by los variable intersects with a geometry contained in geometry variable. Emits a
         signal containing the selected geometry instead of returning the selected geometry.
@@ -27,18 +47,19 @@ class DefaultSelector(Selector):
         :param geometry: list holding the current geometries
         :return:
         """
-        if not len(geometry):
+        if not len(geometries):
             return
         sis = []
-        for geo in geometry:
+        for geometry in geometries:
             # 1. test bounding box
             o = [los[0].x(), los[0].y(), los[0].z()]
             d = [los[1].x(), los[1].y(), los[1].z()]
             intrsectLeafs = []
-            isInBox, intrsectLeafs = geo.subdivboxtree.getIntersectedLeafs(o, d, intrsectLeafs)
+            guid = geometry.guid
+            isInBox, intrsectLeafs = self.subDivBoxTrees[guid].getIntersectedLeafs(o, d, intrsectLeafs)
 
-            points = geo.mesh.points()
-            fv_indices = geo.mesh.fv_indices()
+            points = geometry.mesh.points()
+            fv_indices = geometry.mesh.fv_indices()
 
             # 2. test mesh in intersected subdivision box tree leafs
             if isInBox:
@@ -47,7 +68,7 @@ class DefaultSelector(Selector):
                     # meshres = self.getMeshInterscectionSDBTNew(ray, leaf.facets, geo.mesh)
                     if len(meshres) > 0:
                         si = SelectionInfo()
-                        si.update(meshres[0], meshres[1], geo)
+                        si.update(meshres[0], meshres[1], geometry)
                         sis.append(si)
 
         # Looks for geometry with shortest distance and gives it to
