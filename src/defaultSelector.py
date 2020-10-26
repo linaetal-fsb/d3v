@@ -5,6 +5,7 @@ import openmesh as om
 import numpy as np
 from selection import Selector
 import time
+from PySide2.QtCore import Slot
 from subDivBoxTree import SubDivBoxTree
 
 
@@ -22,6 +23,10 @@ class DefaultSelector(Selector):
         subDivBoxTree = SubDivBoxTree(geometry.mesh)
         subDivBoxTree.createTreeRoot(geometry.bbox)
         self.subDivBoxTrees[geometry.guid] = subDivBoxTree
+
+    @Slot()
+    def onGeometryAdded(self, geometry):
+        self.addGeometry(geometry)
 
     def removeGeometry(self, geometry):
         """
