@@ -149,16 +149,33 @@ class DefaultSelector(Selector):
         results = np.zeros(len(a))
         results[(-e < a) & (a < e)] = infinity
 
-        f = 1.0 / a
-        s = np.subtract(o, v0)
-        u = np.multiply(f, np.sum(s * h, axis=1))
-        results[(u < 0.0) | (u > 1.0)] = infinity
-
-        q = np.cross(s, edge1)
-        v = f * np.sum(d * q, axis=1)
-        results[(v < 0.0) | (u + v > 1.0)] = infinity
-
-        t = np.multiply(f, np.sum(edge2 * q, axis=1))
         mask = results != infinity
-        results[mask] = t[mask]
+        f = 1.0 / a[mask]
+        s = np.subtract(o, v0[mask])
+        dot_sh = np.sum(s * h[mask], axis=1)
+        u = np.multiply(f, dot_sh)
+        _results = results[mask]
+        _results[(u < 0.0) | (u > 1.0)] = infinity
+        results[mask] = _results
+
+        mask = results != infinity
+        s = np.subtract(o, v0[mask])
+        q = np.cross(s, edge1[mask])
+        dot_dq = np.sum(d * q, axis=1)
+        f = 1.0 / a[mask]
+        v = f * dot_dq
+        _results = results[mask]
+        dot_sh = np.sum(s * h[mask], axis=1)
+        u = np.multiply(f, dot_sh)
+        _results[(v < 0.0) | (u + v > 1.0)] = infinity
+        results[mask] = _results
+
+        mask = results != infinity
+        s = np.subtract(o, v0[mask])
+        q = np.cross(s, edge1[mask])
+        dot_edge2_q = np.sum(edge2[mask] * q, axis=1)
+        f = 1.0 / a[mask]
+        t = np.multiply(f, dot_edge2_q)
+        mask = results != infinity
+        results[mask] = t
         return results

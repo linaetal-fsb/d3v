@@ -14,7 +14,10 @@ class Ray:
         """
         self.o = np.array(o)
         self.d = np.array(d)
-        self.d_inv = 1 / self.d
+        # self.d_inv = 1 / self.d
+        self.d_inv = np.array([1 / self.d[0] if self.d[0] != 0 else np.inf,
+                               1 / self.d[1] if self.d[1] != 0 else np.inf,
+                               1 / self.d[2] if self.d[2] != 0 else np.inf])
 
     def propagate(self, t):
         return self.o + self.d * t
@@ -74,7 +77,9 @@ class Box3DIntersection(BBox):
         if (tmin > tzmax) | (tzmin > tmax):
             return False
 
-        return (tmin > 0.0) & (tmax > 0.0)
+        # isIntersected = (tmin > 0.0) & (tmax > 0.0)
+        # return isIntersected
+        return True
 
     def setMinCoord(self, minCoord):
         self._minCoord = minCoord
