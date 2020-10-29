@@ -1,8 +1,6 @@
 from bounds import BBox
 
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
 
 
 class Ray:
@@ -111,6 +109,8 @@ class Box3DIntersection(BBox):
 
 if __name__ == "__main__":
     import random
+    import matplotlib.pyplot as plt
+    from mpl_toolkits import mplot3d
 
     def plot_bbox(ax, b0x, b0y, b0z, b1x, b1y, b1z):
         color = 'blue'
