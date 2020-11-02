@@ -7,7 +7,7 @@ from bounds import BBox
 
 
 class Geometry(QObject):
-    def __init__(self, guid = None):
+    def __init__(self, guid=None):
         super().__init__()
         self._guid = guid
         if not self._guid:
