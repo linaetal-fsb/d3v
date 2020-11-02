@@ -77,7 +77,6 @@ class GlWin(QOpenGLWidget):
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
         Signals.get().geometryAdded.connect(self.onGeometryAdded)
-        Signals.get().geometryAdded.connect(self.selector.onGeometryAdded)
 
         for p in self.glPainters:
             p.initializeGL(self)

@@ -14,6 +14,8 @@ class DefaultSelector(Selector):
         super().__init__()
         self.subDivBoxTrees = {}
 
+        Signals.get().geometryAdded.connect(self.onGeometryAdded)
+
     def addGeometry(self, geometry):
         """
         Creates a SubDivBoxTree object for a given geometry. The SubDixBoxTree object is saved internally in a dict.
