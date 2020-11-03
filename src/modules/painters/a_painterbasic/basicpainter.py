@@ -1,5 +1,6 @@
 from enum import Enum
 from PySide2.QtCore import Slot
+from PySide2.QtGui import QVector4D
 from PySide2.QtGui import QOpenGLShaderProgram, QOpenGLShader
 from PySide2.QtGui import QOpenGLVersionProfile, QOpenGLContext
 from PySide2.QtGui import QSurfaceFormat
@@ -54,12 +55,14 @@ class BasicPainter(Painter):
         self.addGeoCount = 0
         Signals.get().selectionChanged.connect(self.onSelected)
         self.paintDevice = 0
-        # self.selType = SelModes.FULL_FILL_NEWMESH     # 0 - full geometry by addMeshData
-        # self.selType = SelModes.FACET_WF              # 1 - facet by wireframe
-        # self.selType = SelModes.FULL_FILL_SHADER      # 2 - full geometry by shader2
-        # self.selType = SelModes.FACET_FILL            # 3 - Facet by filled triangle with z-fight compensation
-        # self.selType = SelModes.FULL_WF               # 4 - Full geometry by PolygonMode
-        self.selType = SelModes.FACET_FILL_GLOFFSET     # 5 - Facet by filled triangle with glPolygonOffset to avoid z-fight
+        self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
+        # self.selType = SelModes.FULL_FILL_SHADER      # Full geometry by shader2
+        # self.selType = SelModes.FACET_FILL              # Facet by filled triangle with z-fight compensation
+        # self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
+        # self.selType = SelModes.FACET_WF              # Facet by wireframe
+        # self.selType = SelModes.FULL_WF               # Full geometry by PolygonMode
+        # Note: _WF selection modes are not reasonable for everything bigger than triangles, because the wireframe
+        # is applied by ogl shader and all geometries are drawn as triangles
         self._showBack = False
         self._multFactor = 1
         self.showBack = True
@@ -77,10 +80,18 @@ class BasicPainter(Painter):
         self.fragmentWireframeShader = self.fragmentWireframeShaderSource()
         self.projMatrixLoc_wireframe = 0
         self.mvMatrixLoc_wireframe = 0
+        self.wfColor_wireframe = 0
 
         self.lineWidth = 3.0
         self.polyOffsetFactor = 1.0
         self.polyOffsetUnits = 1.0
+
+        self.selectionColor = QVector4D(1.0, 0.0, 1.0, 1.0)
+
+        self.showModelWireframe = False
+        if self.showModelWireframe:
+            self.line_indices = []
+            self.polygonWFColor = QVector4D(1.0, 0.0, 0.0, 1.0)
 
     @property
     def showBack(self):
@@ -133,7 +144,7 @@ class BasicPainter(Painter):
             self.selectionProgram.release()
 
         # Shader for wireframe
-        if self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]:
+        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self.showModelWireframe:
             self.wireframeProgram = QOpenGLShaderProgram()
             self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexWireframeShader)
             self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentWireframeShader)
@@ -141,6 +152,8 @@ class BasicPainter(Painter):
             self.wireframeProgram.bind()
             self.projMatrixLoc_wireframe = self.wireframeProgram.uniformLocation("projMatrix")
             self.mvMatrixLoc_wireframe = self.wireframeProgram.uniformLocation("mvMatrix")
+            self.wfColor_wireframe = self.wireframeProgram.uniformLocation("wfColor")
+            self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
             self.wireframeProgram.release()
             GL.glLineWidth(self.lineWidth)
 
@@ -160,7 +173,7 @@ class BasicPainter(Painter):
             self.selectionProgram.setUniformValue(self.normalMatrixLoc_selection, normalMatrix)
             self.selectionProgram.release()
 
-        if self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]:
+        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self.showModelWireframe:
             # GL.glLineWidth(3.0)
             self.wireframeProgram.bind()
             self.wireframeProgram.setUniformValue(self.projMatrixLoc_wireframe, proj)
@@ -183,6 +196,7 @@ class BasicPainter(Painter):
             elif (key == 0) and (self.selType == SelModes.FACET_WF):
                 GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
                 self.wireframeProgram.bind()
+                self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
                 value.drawvao(self.glf)
                 self.wireframeProgram.release()
                 GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
@@ -190,6 +204,7 @@ class BasicPainter(Painter):
             elif (key == 0) and (self.selType == SelModes.FACET_FILL_GLOFFSET):
                 GL.glEnable(GL.GL_POLYGON_OFFSET_FILL)
                 self.wireframeProgram.bind()
+                self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
                 GL.glPolygonOffset(-self.polyOffsetFactor, -self.polyOffsetUnits)
                 value.drawvao(self.glf)
                 GL.glPolygonOffset(self.polyOffsetFactor, self.polyOffsetUnits)
@@ -201,12 +216,20 @@ class BasicPainter(Painter):
             elif (key == self._si.geometry._guid) and (self.selType == SelModes.FULL_WF):
                 GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
                 self.wireframeProgram.bind()
+                self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
                 value.drawvao(self.glf)
                 self.wireframeProgram.release()
                 GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
                 self.program.bind()
                 value.drawvao(self.glf)
                 self.program.release()
+
+            elif type(key) == str:
+                if "_wf" in key:
+                    self.wireframeProgram.bind()
+                    self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.polygonWFColor)
+                    value.drawvao(self.glf)
+                    self.wireframeProgram.release()
 
             else:
                 self.program.bind()
@@ -289,6 +312,9 @@ class BasicPainter(Painter):
             self._dentsvertsdata[key].setVertexCounter(n_faces * 3 * 2)
         else:
             self._dentsvertsdata[key].setVertexCounter(n_faces * 3)
+
+    def setVertexCounter_byNum(self, key, num_vertices):
+        self._dentsvertsdata[key].setVertexCounter(num_vertices)
 
     def appenddictitemsize(self, key, numents):
         """!
@@ -415,28 +441,19 @@ class BasicPainter(Painter):
 
     def vertexWireframeShaderSource(self):
         return """attribute vec4 vertex;
-                attribute vec3 normal;
-                attribute vec4 color;
-                varying vec3 vert;
-                varying vec3 vertNormal;
-                varying vec4 colorV;
                 uniform mat4 projMatrix;
                 uniform mat4 mvMatrix;
+                uniform vec4 wfColor;
                 void main() {
-                   // vert: necessary that edges of triangle show up at all
-                   vert = vertex.xyz;
-                   // vertNormal: necessary that edges of triangle appear in the correct coloring
-                   vertNormal = normal;
-                   // vertNormal = vec3(1.0, 1.0, 1.0);
                    gl_Position = projMatrix * mvMatrix * vertex;
-                   colorV = color;
+                   // colorV = color;
                 }"""
 
     def fragmentWireframeShaderSource(self):
         return """
-                const highp vec4 wireframeColor = vec4(1.0, 0.0, 1.0, 1.0);
+                uniform vec4 wfColor;
                 void main() {
-                gl_FragColor = wireframeColor;
+                gl_FragColor = wfColor;
                 }
                """
 
@@ -462,17 +479,50 @@ class BasicPainter(Painter):
         key = geometry.guid
         # self.resetmodel()
         self.initnewdictitem(key, GLEntityType.TRIA)
-        nf = geometry.mesh.n_faces()
-        self.appenddictitemsize(key, nf)
-        self.allocatememory(key)
-        # tsAG1 = time.perf_counter()
-        self.addMeshdata4oglmdl(key, geometry)
-        # dtAG1 = time.perf_counter() - tsAG1
+
+        if type(geometry.mesh) == om.TriMesh:
+            print("TriMesh")
+            n_triangles = geometry.mesh.n_faces()
+
+            self.appenddictitemsize(key, n_triangles)
+            self.allocatememory(key)
+            self.addMeshdata4oglmdl(key, geometry)
+
+        elif type(geometry.mesh) == om.PolyMesh:
+            print("PolyMesh")
+            fv_indices = geometry.mesh.fv_indices()
+            n_possible_triangles = fv_indices.shape[0] * (fv_indices.shape[1] - 2)
+            mask_not_triangles = fv_indices == -1
+            not_triangles = fv_indices[mask_not_triangles]
+            n_not_triangles = len(not_triangles)
+            n_triangles = n_possible_triangles - n_not_triangles
+            self.appenddictitemsize(key, n_triangles)
+            self.allocatememory(key)
+            self.addMeshdata4oglmdl_poly(key, geometry)
+
+        else:
+            print("Not handled mesh type")
+
         self.bindData(key)
 
-        # dtAG = time.perf_counter() - tsAG
-        # print("Add geometry time, s:", dtAG)
-        # print("addMeshdata4oglmdl time, s:", dtAG)
+        if self.showModelWireframe:
+            self.addGeoCount = self.addGeoCount + 1
+            key = str(key) + "_wf"
+            self.initnewdictitem(key, GLEntityType.LINE)
+            fv_indices = geometry.mesh.fv_indices()
+            n_possible_lines = fv_indices.shape[0] * fv_indices.shape[1]
+            mask_not_lines = fv_indices == -1
+            not_lines = fv_indices[mask_not_lines]
+            n_not_lines = len(not_lines)
+            n_lines = n_possible_lines - n_not_lines
+
+            self.appenddictitemsize(key, n_lines)
+            self.allocatememory(key)
+
+            self.addWFdata4oglmdl(key, geometry)
+
+            self.bindData(key)
+
 
     def delayedRebuildGeometry(self, geometry: Geometry):
         key = geometry.guid
@@ -496,17 +546,38 @@ class BasicPainter(Painter):
             self.removeDictItem(key)
             if self._si.haveSelection():
                 self.initnewdictitem(key, GLEntityType.TRIA)
-                nf = self._si.nFaces() * 2
-                self.appenddictitemsize(key, nf)
-                self.allocatememory(key)
-                if self.selType == SelModes.FACET_WF:
-                    self.addSelData4oglmdl(key, self._si, self._si.geometry)
-                elif self.selType == SelModes.FACET_FILL:  # self.selType == SelModes.FACET_FILL:
-                    self.addSelData4oglmdl_withOffset(key, self._si, self._si.geometry)
-                elif self.selType == SelModes.FACET_FILL_GLOFFSET:
-                    self.addSelData4oglmdl(key, self._si, self._si.geometry)
-                else:
-                    raise Exception("Unhandled Selection Type!")
+
+                if type(self._si.geometry.mesh) == om.TriMesh:
+                    nf = self._si.nFaces() * 2
+                    self.appenddictitemsize(key, nf)
+                    self.allocatememory(key)
+
+                    if self.selType in [SelModes.FACET_WF, SelModes.FACET_FILL_GLOFFSET]:
+                        self.addSelData4oglmdl(key, self._si, self._si.geometry)
+                    elif self.selType == SelModes.FACET_FILL:
+                        self.addSelData4oglmdl_withOffset(key, self._si, self._si.geometry)
+                    else:
+                        raise Exception("Unhandled Selection Type!")
+
+                elif type(self._si.geometry.mesh) == om.PolyMesh:
+                    fv_indices = self._si.geometry.mesh.fv_indices()
+                    n_possible_triangles = fv_indices.shape[0] * (fv_indices.shape[1] - 2)
+                    mask_not_triangles = fv_indices == -1
+                    not_triangles = fv_indices[mask_not_triangles]
+                    n_not_triangles = len(not_triangles)
+                    n_triangles = n_possible_triangles - n_not_triangles
+
+                    if self.selType in [SelModes.FACET_WF, SelModes.FACET_FILL_GLOFFSET]:
+                        self.appenddictitemsize(key, n_triangles)
+                        self.allocatememory(key)
+                        self.addSelData4oglmdl_poly(key, self._si, self._si.geometry)
+                    elif self.selType == SelModes.FACET_FILL:
+                        self.appenddictitemsize(key, n_triangles * 2)
+                        self.allocatememory(key)
+                        self.addSelData4oglmdl_withOffset_poly(key, self._si, self._si.geometry)
+                    else:
+                        raise Exception("Unhandled Selection Type!")
+
                 self.bindData(key)
 
     def updateGeometry(self):
@@ -633,22 +704,19 @@ class BasicPainter(Painter):
         ar_points = mesh.points()
 
         fv_indices_flattened = fv_indices_np.flatten()
-        mesh_points = ar_points[fv_indices_flattened]
-        data_mesh_points = mesh_points.flatten()
 
-        mesh_normals = np.repeat(face_normals_np, 3, axis=0)
-        data_mesh_normals = mesh_normals.flatten()
+        data_mesh_points = self.createVertexData(fv_indices_flattened, ar_points)
+
+        data_mesh_normals = self.createNormaldata(face_normals_np)
 
         if cstype == 0:
-            mesh_colors = np.tile(c, n_faces * 3)
-            data_mesh_colors = mesh_colors.flatten()
+            data_mesh_colors = self.createConstantColorData(c, n_faces)
         elif cstype == 1:
-            mesh_colors = np.repeat(ar_face_colors, 3, axis=0)
-            data_mesh_colors = mesh_colors.flatten()
+            data_mesh_colors = self.createFaceColorData(ar_face_colors)
         elif cstype == 2:
             # Vertex colors has not been tested and is only implemented from context.
             # --> Errors can occur.
-            data_mesh_colors = ar_vertex_colors[fv_indices_flattened]
+            data_mesh_colors = self.createVertexColorData(ar_vertex_colors, fv_indices_flattened)
 
         if self._showBack:
             fv_indices_flattened_reversed = fv_indices_flattened[::-1]
@@ -685,6 +753,59 @@ class BasicPainter(Painter):
         print("Add mesh data total:", dtAMD)
         return
 
+    def createVertexData(self, fv_indices_flattened, points):
+        """
+        Creates a flattened array holding the coordinates x, y, and z, of all vertices
+        :param fv_indices_flattened: flattened face-vertex indices
+        :param points: coordinates x, y, and z, of all vertices
+        :return:
+        """
+        mesh_points = points[fv_indices_flattened]
+        data_mesh_points = mesh_points.flatten()
+
+        return data_mesh_points
+
+    def createNormaldata(self, face_normals_to_draw):
+        """
+        Creates a flattened array holding the normals for each vertex
+        :param face_normals_to_draw: array holding normals of each face
+        :return:
+        """
+        mesh_normals = np.repeat(face_normals_to_draw, 3, axis=0)
+        data_mesh_normals = mesh_normals.flatten()
+
+        return data_mesh_normals
+
+    def createConstantColorData(self, c, n_faces):
+        """
+        Creates a flattened array holding the rgba color of each vertex
+        :param c: color which is assigned to each vertex
+        :param n_faces: amount of faces
+        :return:
+        """
+        mesh_colors = np.tile(c, 3 * n_faces)
+        data_mesh_colors = mesh_colors.flatten()
+        return data_mesh_colors
+
+    def createFaceColorData(self, face_colors):
+        """
+        Create a flattened array holding the rgba color of each vertex
+        :param face_colors: array with shape (n, 4), holding the color of each face, where n is the amount of faces
+        :return:
+        """
+        mesh_colors = np.repeat(face_colors, 3, axis=0)
+        data_mesh_colors = mesh_colors.flatten()
+        return data_mesh_colors
+
+    def createVertexColorData(self, vertex_colors, fv_indices_flattened):
+        """
+        Creates a flattened array holding the rgba color of each vertex
+        :param vertex_colors: array holding the colors of all vertices
+        :param fv_indices_flattened: array holding the indices of the vertices for which the color array is created
+        :return:
+        """
+        return vertex_colors[fv_indices_flattened]
+
     @Slot()
     def onSelected(self, si: SelectionInfo):
         if self.selType == SelModes.FULL_FILL_NEWMESH:  # whole geometry selection
@@ -717,3 +838,314 @@ class BasicPainter(Painter):
             self._si = si
 
         pass
+
+    """ 
+    Utilities for Polymesh
+    """
+    def addSelData4oglmdl_poly(self, key, si, geometry):
+        """
+        Converts the mesh data of a polygon mesh to the vertex data necessary for OpenGL
+        :param key: key under which the geometry is saved
+        :param si: SelectionInfo object holding the face indices which are selected
+        :param geometry: geometry holding the mesh data which is to be converted
+        :return:
+        """
+        mesh = geometry.mesh
+        normals = mesh.face_normals()
+        points = mesh.points()
+        fv_indices = mesh.fv_indices()
+        selected_fv_indices = fv_indices[si.allfaces]
+        selected_face_normals = normals[si.allfaces]
+        cstype = 0
+        c = [1.0, 0.0, 1.0, 1.0]
+
+        self.addArrays4oglmdl_poly(key, selected_fv_indices, points, selected_face_normals, cstype, c, None, None)
+        return
+
+    def addWFdata4oglmdl(self, key, geometry):
+        """
+        Converts the mesh data of a geometry to the wireframe vertex data necessary for OpenGL.
+        :param key: key under which the geometry is saved
+        :param geometry: geometry holding the mesh which is to be converted
+        :return:
+        """
+        mesh = geometry.mesh
+        fv_indices = mesh.fv_indices()
+        points = mesh.points()
+
+        n_corners_max = len(fv_indices[0])
+
+        faces_drawn = np.zeros(len(fv_indices), dtype=np.bool)
+        corner_idx_array = range(2, n_corners_max)[::-1]
+        line_indices = []
+        for corner_idx in corner_idx_array:
+            existing = fv_indices[:, corner_idx] != -1
+
+            existing_fv_indices = fv_indices[existing & ~faces_drawn]
+            existing_fv_indices = existing_fv_indices[:, 0: corner_idx + 1]
+            faces_drawn = faces_drawn | existing
+
+            fv_indices_repeated = np.repeat(existing_fv_indices, 2, axis=1)
+            fv_indices_repeated[:, :-1] = fv_indices_repeated[:, 1:]
+            fv_indices_repeated[:, -1] = fv_indices_repeated[:, 0]
+            fv_indices_repeated = fv_indices_repeated.flatten()
+
+            line_indices = np.concatenate([line_indices, fv_indices_repeated])
+
+        line_indices = line_indices.astype(np.uint)
+        n_vertices = len(line_indices)
+        vertices = points[line_indices]
+        vertices = np.array(vertices, dtype=np.float32).flatten()
+        normals = np.array([])
+        colors = np.array([])
+
+        self.setlistdata_f3xyzf3nf4rgba(key, vertices, normals, colors)
+        self.setVertexCounter_byNum(key, n_vertices)
+
+        print("BP")
+
+    def addMeshdata4oglmdl_poly(self, key, geometry):
+        """
+        Converts the mesh data of a polygon mesh to the vertex data necessary for OpenGL
+        :param key: key under which the geometry is saved
+        :param geometry: geometry holding the mesh data which is to be converted
+        :return:
+        """
+        tsAMD = time.perf_counter()
+        mesh = geometry.mesh
+
+        # color data
+        cstype = 0  # color source type
+        c = None
+        ar_face_colors = None
+        ar_vertex_colors = None
+        if self.selType == SelModes.FULL_FILL_NEWMESH:
+            if self._si.geometry.guid == geometry.guid:
+                c = [1.0, 0.0, 1.0, 1.0]
+            else:
+                c = [0.4, 1.0, 1.0, 1.0]  # default color
+        elif mesh.has_face_colors():
+            ar_face_colors = mesh.face_colors()
+            cstype = 1
+        elif mesh.has_vertex_colors():
+            ar_vertex_colors = mesh.vertex_colors()
+            cstype = 2
+        else:
+            c = [0.4, 1.0, 1.0, 1.0]  # default color
+
+        # normals data
+        if not mesh.has_face_normals():  # normals are necessary for correct lighting effect
+            mesh.request_face_normals()
+            mesh.update_face_normals()
+
+        fv_indices_np = mesh.fv_indices()
+        face_normals_np = mesh.face_normals()
+        ar_points = mesh.points()
+
+        self.addArrays4oglmdl_poly(key, fv_indices_np, ar_points, face_normals_np, cstype, c, ar_face_colors, ar_vertex_colors)
+
+        dtAMD = time.perf_counter() - tsAMD
+        print("Add mesh data total:", dtAMD)
+        return
+
+    def addArrays4oglmdl_poly(self, key, fv_indices, points, face_normals, cstype, c, face_colors, vertex_colors):
+        """
+        Utility function which converts the mesh data of a polygon mesh to the vertex data necessary for OpenGL
+        :param key: key under which the geometry is saved
+        :param fv_indices: face-vertex indices which are drawn in OpenGL
+        :param points: array holding the coordinates x, y, and z, of all vertices
+        :param face_normals: array holding the normal of each face
+        :param cstype: integer variable which indicates how the vertices are colored. 0 assigns constant color for all vertices. 1 assign individual color for each face. 2 assigns individual color for each vertex
+        :param c: color for all vertices if cstype = 0
+        :param face_colors: array holding the color of each face if cstype = 1
+        :param vertex_colors: array holding the color of each vertex if cstype = 2
+        :return:
+        """
+        n_vertices_max = len(fv_indices[0])
+
+        data_mesh_points_list = np.array([])
+        data_mesh_normals_list = np.array([])
+        data_mesh_colors_list = np.array([])
+        n_all_vertices = 0
+
+        max_iter = n_vertices_max - 1
+
+        for corner_idx in range(1, max_iter):
+            if n_vertices_max > 3:
+                existing_triangles = fv_indices[:, corner_idx + 1] != -1
+
+                if True not in existing_triangles:
+                    continue
+
+                fv_indices_to_draw_all_vertices = fv_indices[existing_triangles]
+                fv_indices_to_draw = fv_indices_to_draw_all_vertices[:, [0, corner_idx, corner_idx + 1]]
+                face_normals_to_draw = face_normals[existing_triangles]
+            else:
+                fv_indices_to_draw = fv_indices
+                face_normals_to_draw = face_normals
+
+            fv_indices_flattened = fv_indices_to_draw.flatten()
+            n_all_vertices += len(fv_indices_flattened)
+
+            n_faces = len(fv_indices_to_draw)
+
+            vertexData = self.createVertexData(fv_indices_flattened, points)
+
+            normalData = self.createNormaldata(face_normals_to_draw)
+
+            if cstype == 0:
+                colorData = self.createConstantColorData(c, n_faces)
+            elif cstype == 1:
+                colorData = self.createFaceColorData(face_colors)
+            elif cstype == 2:
+                colorData = self.createVertexColorData(vertex_colors, fv_indices_flattened)
+
+            if self._showBack:
+                fv_indices_flattened_reversed = fv_indices_flattened[::-1]
+                n_all_vertices += len(fv_indices_flattened_reversed)
+
+                reversed_mesh_points = self.createVertexData(fv_indices_flattened_reversed, points)
+
+                reversed_normals = self.createNormaldata(-face_normals_to_draw[::-1])
+
+                if cstype == 0:
+                    reversed_colors = colorData
+                elif cstype == 1:
+                    reversed_colors = self.createFaceColorData(face_colors[::-1])
+                elif cstype == 2:
+                    reversed_colors = self.createVertexColorData(vertex_colors, fv_indices_flattened_reversed)
+
+                data_mesh_points_list = np.concatenate([data_mesh_points_list, vertexData, reversed_mesh_points])
+                data_mesh_normals_list = np.concatenate([data_mesh_normals_list, normalData, reversed_normals])
+                data_mesh_colors_list = np.concatenate([data_mesh_colors_list, colorData, reversed_colors])
+            else:
+                data_mesh_points_list = np.concatenate([data_mesh_points_list, vertexData])
+                data_mesh_normals_list = np.concatenate([data_mesh_normals_list, normalData])
+                data_mesh_colors_list = np.concatenate([data_mesh_colors_list, colorData])
+
+        vertex_data = np.array(data_mesh_points_list, dtype=GLHelpFun.numpydatatype(GLDataType.FLOAT))
+        normal_data = np.array(data_mesh_normals_list, dtype=GLHelpFun.numpydatatype(GLDataType.FLOAT))
+        color_data = np.array(data_mesh_colors_list, dtype=GLHelpFun.numpydatatype(GLDataType.FLOAT))
+
+        self.setlistdata_f3xyzf3nf4rgba(key, vertex_data, normal_data, color_data)
+        self.setVertexCounter_byNum(key, n_all_vertices)
+        return
+
+    def addSelData4oglmdl_withOffset_poly(self, key, si, geometry):
+        """
+        Creates a flattened array holding the vertex data necessary for OpenGL. An offset is added to each polygon. The offset is equal to corresponding normal divided by 100
+        :param key: key under which the geometry is saved
+        :param si: SelectionInfo object holding the face indices which are selected
+        :param geometry: geometry holding the mesh data which is converted
+        :return:
+        """
+        mesh = geometry.mesh
+        normals = mesh.face_normals()
+        points = mesh.points()
+        fv_indices = mesh.fv_indices()
+        selected_fv_indices = fv_indices[si.allfaces]
+        selected_face_normals = normals[si.allfaces]
+        cstype = 0
+        c = [1.0, 0.0, 1.0, 1.0]
+
+        self.addArrays4oglmdl_withOffset_poly(key, selected_fv_indices, points, selected_face_normals, cstype, c, None, None)
+        return
+
+    def addArrays4oglmdl_withOffset_poly(self, key, fv_indices, points, face_normals, cstype, c, face_colors, vertex_colors):
+        """
+        Utility function which converts the mesh data of a polygon mesh to the vertex data necessary for OpenGL. An offset is added to each vertex. The offset is equal to the corresponding normal divided by 100
+        :param key: key under which the geometry is saved
+        :param fv_indices: face-vertex indices which are drawn in OpenGL
+        :param points: array holding the coordinates x, y, and z, of all vertices
+        :param face_normals: array holding the normal of each face
+        :param cstype: integer variable which indicates how the vertices are colored. 0 assigns constant color for all vertices. 1 assign individual color for each face. 2 assigns individual color for each vertex
+        :param c: color for all vertices if cstype = 0
+        :param face_colors: array holding the color of each face if cstype = 1
+        :param vertex_colors: array holding the color of each vertex if cstype = 2
+        :return:
+        """
+        n_vertices_max = len(fv_indices[0])
+
+        data_mesh_points_list = []
+        data_mesh_normals_list = []
+        data_mesh_colors_list = []
+        n_all_vertices = 0
+        for corner_idx in range(1, n_vertices_max - 1):
+            existing_triangles = fv_indices[:, corner_idx + 1] != -1
+
+            if True not in existing_triangles:
+                continue
+
+            fv_indices_to_draw_all_vertices = fv_indices[existing_triangles]
+            fv_indices_to_draw = fv_indices_to_draw_all_vertices[:, [0, corner_idx, corner_idx + 1]]
+
+            n_faces = len(fv_indices_to_draw_all_vertices)
+
+            fv_indices_flattened = fv_indices_to_draw.flatten()
+            mesh_points = points[fv_indices_flattened]
+            data_mesh_points = mesh_points.flatten()
+
+            n_all_vertices += len(fv_indices_flattened)
+
+            face_normals_to_draw = face_normals[existing_triangles]
+            data_mesh_normals = self.createNormaldata(face_normals_to_draw)
+
+            if cstype == 0:
+                data_mesh_colors = self.createConstantColorData(c, n_faces)
+            elif cstype == 1:
+                data_mesh_colors = self.createFaceColorData(face_colors)
+            elif cstype == 2:
+                data_mesh_colors = self.createVertexColorData(vertex_colors, fv_indices_flattened)
+
+            data_mesh_points1 = data_mesh_points + data_mesh_normals / 100
+            data_mesh_points2 = data_mesh_points - data_mesh_normals / 100
+            data_mesh_points = np.concatenate([data_mesh_points1, data_mesh_points2])
+
+            data_mesh_normals = np.concatenate([data_mesh_normals, data_mesh_normals])
+
+            data_mesh_colors = np.concatenate([data_mesh_colors, data_mesh_colors])
+
+            if self._showBack:
+                fv_indices_flattened_reversed = fv_indices_flattened[::-1]
+                n_all_vertices += len(fv_indices_flattened_reversed)
+
+                reversed_mesh_points = self.createVertexData(fv_indices_flattened_reversed, points)
+
+                reversed_normals = -face_normals_to_draw[::-1]
+                reversed_normals = self.createNormaldata(reversed_normals)
+
+                if cstype == 0:
+                    reversed_mesh_colors = data_mesh_colors
+                elif cstype == 1:
+                    reversed_mesh_colors = self.createFaceColorData(face_colors[::-1])
+                elif cstype == 2:
+                    reversed_mesh_colors = self.createVertexColorData(vertex_colors, fv_indices_flattened_reversed)
+
+                reversed_mesh_points1 = reversed_mesh_points + reversed_normals / 100
+                reversed_mesh_points2 = reversed_mesh_points - reversed_normals / 100
+                reversed_mesh_points = np.concatenate([reversed_mesh_points1, reversed_mesh_points2])
+
+                reversed_normals = np.concatenate([reversed_normals, reversed_normals])
+
+                reversed_mesh_colors = np.concatenate([reversed_mesh_colors, reversed_mesh_colors])
+
+                data_mesh_points = np.concatenate([data_mesh_points, reversed_mesh_points])
+                data_mesh_normals = np.concatenate([data_mesh_normals, reversed_normals])
+                data_mesh_colors = np.concatenate([data_mesh_colors, reversed_mesh_colors])
+
+            data_mesh_points_list.append(data_mesh_points)
+            data_mesh_normals_list.append(data_mesh_normals)
+            data_mesh_colors_list.append(data_mesh_colors)
+
+        data_mesh_points_list = np.concatenate([*data_mesh_points_list])
+        data_mesh_normals_list = np.concatenate([*data_mesh_normals_list])
+        data_mesh_colors_list = np.concatenate([*data_mesh_colors_list])
+
+        vertex_data = np.array(data_mesh_points_list, dtype=GLHelpFun.numpydatatype(GLDataType.FLOAT))
+        normal_data = np.array(data_mesh_normals_list, dtype=GLHelpFun.numpydatatype(GLDataType.FLOAT))
+        color_data = np.array(data_mesh_colors_list, dtype=GLHelpFun.numpydatatype(GLDataType.FLOAT))
+
+        self.setlistdata_f3xyzf3nf4rgba(key, vertex_data, normal_data, color_data)
+        self.setVertexCounter_byNum(key, n_all_vertices)
+        return
+
