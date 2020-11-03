@@ -1,5 +1,5 @@
 import time
-
+import openmesh as om
 import numpy as np
 
 from bounds import BBox
@@ -25,6 +25,7 @@ class SubDivBoxTree(Box3DIntersection):
         self.facets = []
         self.nodes = []
         self._maxfacets = 1000
+        # self._maxfacets = 2
         self.name = ""
 
     def getIntersectedLeafs(self, o, d, intrsectLeafs):
@@ -84,9 +85,27 @@ class SubDivBoxTree(Box3DIntersection):
             sbox1.maxCoord[2] = (self.maxCoord[2] + self.minCoord[2]) * 0.5
             sbox2.minCoord[2] = sbox1.maxCoord[2]
 
-        fv_indices = fv_indices[self.facets]
-        face_vertices = points[fv_indices]
-        faceCGs = face_vertices.sum(axis=1) / 3
+        if type(self.mesh) == om.TriMesh:
+            fv_indices = fv_indices[self.facets]
+            face_vertices = points[fv_indices]
+            faceCGs = face_vertices.sum(axis=1) / 3
+        else:
+            fv_indices = fv_indices[self.facets]
+            faceCGs = np.zeros((len(fv_indices), 3))
+            n_corners_max = len(fv_indices[0])
+            corners_iter = range(2, n_corners_max)
+            polygons_done = np.zeros(len(fv_indices), dtype=np.bool)
+            for corner_idx in corners_iter[::-1]:
+                are_polygons = fv_indices[:, corner_idx] != -1
+                mask = are_polygons & ~polygons_done
+                iter_fv_indices = fv_indices[mask]
+                iter_fv_indices = iter_fv_indices[:, :corner_idx+1]
+
+                polygons_done = polygons_done | are_polygons
+
+                iter_face_vertices = points[iter_fv_indices]
+                iter_faceCGs = iter_face_vertices.sum(axis=1) / (corner_idx + 1)
+                faceCGs[mask] = iter_faceCGs
 
         isIn_sbox1 = sbox1.isIn_array(faceCGs)
         facets_sbox1 = self.facets[isIn_sbox1]
