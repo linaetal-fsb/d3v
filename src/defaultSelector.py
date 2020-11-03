@@ -71,8 +71,11 @@ class DefaultSelector(Selector):
             # 2. test mesh in intersected subdivision box tree leafs
             if isInBox:
                 for leaf in intrsectLeafs:
-                    meshres = self.getMeshInterscection(o, d, leaf.facets, points, fv_indices)
-                    # meshres = self.getMeshInterscectionSDBTNew(ray, leaf.facets, geo.mesh)
+                    if type(geometry.mesh) == om.TriMesh:
+                        meshres = self.getMeshInterscection(o, d, leaf.facets, points, fv_indices)
+                    elif type(geometry.mesh) == om.PolyMesh:
+                        meshres = self.getMeshInterscection_polygon(o, d, leaf.facets, points, fv_indices)
+
                     if len(meshres) > 0:
                         si = SelectionInfo()
                         si.update(meshres[0], meshres[1], geometry)
@@ -127,6 +130,47 @@ class DefaultSelector(Selector):
         idx_min = np.argmin(intersectedFacetsDistances)
         result = [intersectedFacetsDistances[idx_min], intersectedFacets[idx_min]]
         return result
+
+    def getMeshInterscection_polygon(self, o, d, fhlist, points, fv_indices):
+        chosen_fv_indices = fv_indices[fhlist]
+        chosen_points = points[chosen_fv_indices]
+        # exclude facets with indices -1
+
+        facets_list = []
+        distances_list = []
+        n_corners = len(chosen_points[0])
+        for corner_idx in range(1, n_corners - 1):
+            existing_triangles = chosen_fv_indices[:, corner_idx+1] != -1
+            existing_fhlist = fhlist[existing_triangles]
+            existing_chosen_points = chosen_points[existing_triangles]
+
+            facets, distances = self.triIntersectFacetsDistances(o,
+                                                                 d,
+                                                                 existing_fhlist,
+                                                                 existing_chosen_points[:, 0],
+                                                                 existing_chosen_points[:, corner_idx],
+                                                                 existing_chosen_points[:, corner_idx+1])
+            facets_list.append(facets)
+            distances_list.append(distances)
+
+        facets_return = np.concatenate([*facets_list])
+        distances_return = np.concatenate([*distances_list])
+
+        if len(facets_return) == 0:
+            return []
+
+        idx_min = np.argmin(distances_return)
+        result = [distances_return[idx_min], facets_return[idx_min]]
+        return result
+
+    def triIntersectFacetsDistances(self, o, d, fhlist, v0, v1, v2):
+        infinity = float('inf')
+        ds = self.rayIntersectsTriangleMollerTrumboreSDBT(o, d, v0, v1, v2)
+        mask = ds != infinity
+        intersectedFacets = fhlist[mask]
+        intersectedFacetsDistances = ds[mask]
+
+        return intersectedFacets, intersectedFacetsDistances
 
     def rayIntersectsTriangleMollerTrumboreSDBT(self, o, d, v0, v1, v2):
         """
