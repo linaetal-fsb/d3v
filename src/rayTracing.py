@@ -100,6 +100,9 @@ class Box3DIntersection(BBox):
         return t
 
     def isIn_array(self, points):
+        # isIn_bool_array0 = (self.minCoord[0] <= points[:, 0]) & (points[:, 0] <= self.maxCoord[0])
+        # isIn_bool_array1 = (self.minCoord[1] <= points[:, 1]) & (points[:, 1] <= self.maxCoord[1])
+        # isIn_bool_array2 = (self.minCoord[2] <= points[:, 2]) & (points[:, 2] <= self.maxCoord[2])
         isIn_bool_array0 = (self.minCoord[0] < points[:, 0]) & (points[:, 0] < self.maxCoord[0])
         isIn_bool_array1 = (self.minCoord[1] < points[:, 1]) & (points[:, 1] < self.maxCoord[1])
         isIn_bool_array2 = (self.minCoord[2] < points[:, 2]) & (points[:, 2] < self.maxCoord[2])
