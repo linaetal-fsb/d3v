@@ -55,10 +55,10 @@ class BasicPainter(Painter):
         self.addGeoCount = 0
         Signals.get().selectionChanged.connect(self.onSelected)
         self.paintDevice = 0
-        self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
+        # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
         # self.selType = SelModes.FULL_FILL_SHADER      # Full geometry by shader2
         # self.selType = SelModes.FACET_FILL              # Facet by filled triangle with z-fight compensation
-        # self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
+        self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
         # self.selType = SelModes.FACET_WF              # Facet by wireframe
         # self.selType = SelModes.FULL_WF               # Full geometry by PolygonMode
         # Note: _WF selection modes are not reasonable for everything bigger than triangles, because the wireframe
