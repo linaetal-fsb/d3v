@@ -88,7 +88,7 @@ class BasicPainter(Painter):
 
         self.selectionColor = QVector4D(1.0, 0.0, 1.0, 1.0)
 
-        self.showModelWireframe = False
+        self.showModelWireframe = True
         if self.showModelWireframe:
             self.line_indices = []
             self.polygonWFColor = QVector4D(1.0, 0.0, 0.0, 1.0)
