@@ -56,9 +56,9 @@ class BasicPainter(Painter):
         Signals.get().selectionChanged.connect(self.onSelected)
         self.paintDevice = 0
         # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
-        # self.selType = SelModes.FULL_FILL_SHADER      # Full geometry by shader2
+        self.selType = SelModes.FULL_FILL_SHADER      # Full geometry by shader2
         # self.selType = SelModes.FACET_FILL              # Facet by filled triangle with z-fight compensation
-        self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
+        #self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
         # self.selType = SelModes.FACET_WF              # Facet by wireframe
         # self.selType = SelModes.FULL_WF               # Full geometry by PolygonMode
         # Note: _WF selection modes are not reasonable for everything bigger than triangles, because the wireframe
@@ -82,7 +82,7 @@ class BasicPainter(Painter):
         self.mvMatrixLoc_wireframe = 0
         self.wfColor_wireframe = 0
 
-        self.lineWidth = 3.0
+        self.lineWidth = 1.0
         self.polyOffsetFactor = 1.0
         self.polyOffsetUnits = 1.0
 
@@ -525,18 +525,15 @@ class BasicPainter(Painter):
 
 
     def delayedRebuildGeometry(self, geometry: Geometry):
-        key = geometry.guid
-        self.removeDictItem(key)
-        self.initnewdictitem(key, GLEntityType.TRIA)
-        nf = geometry.mesh.n_faces()
-        self.appenddictitemsize(key, nf)
-        self.allocatememory(key)
-        self.addMeshdata4oglmdl(key, geometry)
-        self.bindData(key)
+        self.delayedRemoveGeometry(geometry)
+        self.delayedAddGeometry(geometry)
 
     def delayedRemoveGeometry(self, geometry: Geometry):
         key = geometry.guid
         self.removeDictItem(key)
+        if self.showModelWireframe:
+            key = str(key) + "_wf"
+            self.removeDictItem(key)
 
     def addSelection(self):
         if (self.selType == 0) or (self.selType == 2):
