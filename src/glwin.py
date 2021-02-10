@@ -8,9 +8,8 @@ import numpy as np
 from signals import Signals, DragInfo
 
 from bounds import  BBox
-from defaultSelector import DefaultSelector
+from selection import Selector
 from application import App
-from painters import Painter
 
 
 class GlWin(QOpenGLWidget):
@@ -40,7 +39,7 @@ class GlWin(QOpenGLWidget):
         self.zoomFactor = 1.0 #vrport
         self._paintCounter = 0
         self._selectCounter = 0
-        self._selector = DefaultSelector()
+        self._selector = Selector()
 
     def paintGL(self):
         Signals.get().updateGL.emit()

@@ -10,8 +10,9 @@ class OpenMeshImporter(IOHandler):
     def importGeometry(self, fileName):
         g = Geometry()
         try:
-            # m = om.read_trimesh(fileName)
-            m = om.read_polymesh(fileName)
+            m = om.read_trimesh(fileName)
+            # polymesh read could be enabled using call arguments
+            #m = om.read_polymesh(fileName)
         except:
             print("File not supported for read with openmesh")
             return

@@ -1,4 +1,3 @@
-from rayTracing import Ray, Box3DIntersection
 from signals import Signals
 from selinfo import SelectionInfo
 import openmesh as om
@@ -6,10 +5,10 @@ import numpy as np
 from selection import Selector
 import time
 from PySide2.QtCore import Slot
-from subDivBoxTree import SubDivBoxTree
+from selectorbasic.subdivboxtree import SubDivBoxTree
 
 
-class DefaultSelector(Selector):
+class BasicSelector(Selector):
     def __init__(self):
         super().__init__()
         self.subDivBoxTrees = {}
@@ -42,7 +41,8 @@ class DefaultSelector(Selector):
         tSS = time.perf_counter()
         self.selectList(los, geometries)
         dtS = time.perf_counter() - tSS
-        print("Selection time, s:", dtS)
+        if __debug__:
+            print("Selection time, s:", dtS)
 
     def selectList(self, los, geometries):
         """

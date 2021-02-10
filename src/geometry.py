@@ -37,6 +37,7 @@ class Geometry(QObject):
         return bb
 
     def onSelected(self, si):
-        print ("Selected geometry: {}".format(self.guid))
-        print("Selected facet: {}".format(si.face))
-        print("Intersection point distance: {}".format(si.distance))
+        if __debug__:
+            print ("Selected geometry: {}".format(self.guid))
+            print("Selected facet: {}".format(si.face))
+            print("Intersection point distance: {}".format(si.distance))

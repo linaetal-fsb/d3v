@@ -3,7 +3,7 @@ import openmesh as om
 import numpy as np
 
 from bounds import BBox
-from rayTracing import Box3DIntersection
+from selectorbasic.raytracing import Box3DIntersection
 
 
 class SubDivBoxTree(Box3DIntersection):
@@ -45,16 +45,17 @@ class SubDivBoxTree(Box3DIntersection):
 
         fv_indices = self.mesh.fv_indices()
         points = self.mesh.points()
-
-        tsTR = time.perf_counter()
+        if __debug__:
+            tsTR = time.perf_counter()
         self.setFromBBox(box)
         self.name = "root"
         nf = len(fv_indices)
         facets = np.array(range(nf))
         self.setFacets(facets)
         self.createTree(fv_indices, points)
-        dtTR = time.perf_counter() - tsTR
-        print("Tree creation time, s:", dtTR)
+        if __debug__:
+            dtTR = time.perf_counter() - tsTR
+            print("Tree creation time, s:", dtTR)
         # self.printTreeInfo()
 
     def createTree(self, fv_indices: [], points: []):
