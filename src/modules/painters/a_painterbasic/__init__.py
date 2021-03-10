@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__))
 
-from basicpainter import BasicPainter
+from a_painterbasic.basicpainter import BasicPainter
 
 
 
