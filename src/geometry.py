@@ -1,6 +1,6 @@
 import openmesh as om
 import uuid
-from PySide2.QtCore import QObject
+from PySide6.QtCore import QObject
 
 from bounds import BBox
 #from selinfo import SelectionInfo

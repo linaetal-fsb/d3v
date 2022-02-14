@@ -1,6 +1,6 @@
-from PySide2.QtGui import QOpenGLFunctions
-from PySide2.QtCore import Slot, Signal, QObject
-from PySide2.QtWidgets import QApplication
+from PySide6.QtGui import QOpenGLFunctions
+from PySide6.QtCore import Slot, Signal, QObject
+from PySide6.QtWidgets import QApplication
 
 import uuid
 

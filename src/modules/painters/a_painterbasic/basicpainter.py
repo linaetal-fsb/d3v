@@ -1,23 +1,23 @@
 from enum import Enum
-from PySide2.QtCore import Slot
-from PySide2.QtGui import QVector4D
-from PySide2.QtGui import QOpenGLShaderProgram, QOpenGLShader
-from PySide2.QtGui import QOpenGLVersionProfile, QOpenGLContext
-from PySide2.QtGui import QSurfaceFormat
-from PySide2.QtWidgets import QMessageBox
+from PySide6.QtCore import Slot
+from PySide6.QtGui import QVector4D
+from PySide6.QtOpenGL import QOpenGLShaderProgram, QOpenGLShader
+from PySide6.QtOpenGL import QOpenGLVersionProfile
+from PySide6.QtGui import QSurfaceFormat, QOpenGLContext
+from PySide6.QtWidgets import QMessageBox
 from painters import Painter
 from signals import Signals, DragInfo
 from a_painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f, VertDataCollectorCoord3fColor4f
 from a_painterbasic.glhelp import GLEntityType, GLHelpFun, GLDataType
 from OpenGL import GL
-from PySide2.QtCore import QCoreApplication
+from PySide6.QtCore import QCoreApplication
 from geometry import Geometry
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
-from PySide2.QtGui import QBrush, QPainter, QPen, QPolygon, QColor, QFont
-from PySide2.QtCore import QRect, Qt
-from PySide2.QtWidgets import QApplication
+from PySide6.QtGui import QBrush, QPainter, QPen, QPolygon, QColor, QFont
+from PySide6.QtCore import QRect, Qt
+from PySide6.QtWidgets import QApplication
 import time
 
 
