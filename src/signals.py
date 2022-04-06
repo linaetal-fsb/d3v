@@ -59,7 +59,6 @@ class Signals(QObject):
     dragging = Signal(DragInfo)
     draggingEnd = Signal(DragInfo)
 
-    geometryAdded = Signal(Geometry)
     geometryImported = Signal(Geometry)
     importGeometry = Signal(str)
     selectionChanged = Signal(SelectionInfo)

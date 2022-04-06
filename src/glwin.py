@@ -12,6 +12,7 @@ from signals import Signals, DragInfo
 from bounds import  BBox
 from selection import Selector
 from application import App
+from geometry import geometry_manager
 
 
 class GlWin(QOpenGLWidget):
@@ -80,7 +81,7 @@ class GlWin(QOpenGLWidget):
 
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
-        Signals.get().geometryAdded.connect(self.onGeometryAdded)
+        geometry_manager.geometry_created.connect(self.onGeometryAdded)
 
         for p in self.glPainters:
             p.initializeGL(self)
@@ -197,9 +198,8 @@ class GlWin(QOpenGLWidget):
 
     @Slot()
     def onGeometryAdded(self, geometry):
-        self._bb =  self._bb + geometry.bbox
-        for p in self.glPainters:
-            p.addGeometry(geometry)
+        for g in geometry:
+            self._bb =  self._bb + g.bbox
         self.update()
 
     @Slot()

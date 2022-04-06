@@ -187,7 +187,7 @@ class App(QApplication):
     def doImportGeometry(self, fname):
         for h in self.iohandlers:
             if h.supportsImport(fname):
-                h.importGeometry(fname)
+                h.import_geometry(fname)
                 return
         QMessageBox.warning(None, "Import geometry", "No suitable iohandler found to import")
 

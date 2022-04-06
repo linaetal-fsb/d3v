@@ -1,5 +1,5 @@
-from iohandlers import IOHandler
-from signals import Signals
+from iohandlers import IOHandler, ImportError
+
 from geometry import Geometry
 import openmesh as om
 
@@ -7,17 +7,11 @@ class OpenMeshImporter(IOHandler):
     def __init__(self):
         super().__init__()
 
-    def importGeometry(self, fileName):
+    def do_import_geometry(self, fileName):
         g = Geometry()
-        try:
-            m = om.read_trimesh(fileName)
-            # polymesh read could be enabled using call arguments
-            #m = om.read_polymesh(fileName)
-        except:
-            print("File not supported for read with openmesh")
-            return
+        m = om.read_trimesh(fileName)
         g.mesh = m
-        Signals.get().geometryImported.emit(g)
+        return g
 
     def getImportFormats(self):
         return (".obj", ".stl", ".ply", ".off")

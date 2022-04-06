@@ -1,14 +1,14 @@
 import openmesh as om
 import uuid
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, Signal, Slot
 
 from bounds import BBox
-#from selinfo import SelectionInfo
-
+import enum
 
 class Geometry(QObject):
-    def __init__(self, guid=None):
+    def __init__(self, name = '', guid=None):
         super().__init__()
+        self.__name = name
         self._guid = guid
         if not self._guid:
             self._guid = uuid.uuid4()
@@ -41,3 +41,68 @@ class Geometry(QObject):
             print ("Selected geometry: {}".format(self.guid))
             print("Selected facet: {}".format(si.face))
             print("Intersection point distance: {}".format(si.distance))
+
+
+
+class __geometry_manager(QObject):
+
+    #signals
+    visible_geometry_changed = Signal(list, list, list ) # visible, loaded, selected
+    selected_geometry_changed = Signal(list, list)     # selected, visible
+    geometry_created = Signal(list)
+    geometry_removed = Signal(list)
+
+    __loaded_geometry = set()
+    __visible_geometry = set()
+    __selected_geometry = set()
+
+    def __init__(self):
+        super().__init__()
+
+    def add_geometry(self, geometry_2_add):
+        g2a = set(geometry_2_add)
+        self.__loaded_geometry |= g2a
+        self.geometry_created.emit(list(geometry_2_add))
+
+
+    def remove_geometry(self, geometry_2_remove:list):
+        self.__loaded_geometry = set(self.__loaded_geometry) - set(geometry_2_remove)
+        to_emit = list(geometry_2_remove - self.__loaded_geometry)
+        self.geometry_removed.emit(to_emit)
+
+
+    def hide_geometry(self, geometry_2_hide: list):
+        hidden = set(geometry_2_hide)
+        self.__visible_geometry -= hidden
+        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+
+
+    def show_geometry(self, geometry_2_show: list):
+        g2s = set(geometry_2_show)
+        self.__visible_geometry |= g2s
+        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+
+    def select_geometry(self, geometry_2_select):
+        g2s = set(geometry_2_select)
+        self.__selected_geometry |= g2s
+        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+
+    def unselect_geometry(self, geometry_2_unselect):
+        g2u = set(geometry_2_unselect)
+        self.__selected_geometry -= g2u
+        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+
+    @property
+    def loaded_geometry(self):
+        return self.__loaded_geometry
+
+    @property
+    def visible_geometry(self):
+        return self.__visible_geometry
+
+    @property
+    def selected_geometry(self):
+        return self.__selected_geometry
+
+
+geometry_manager = __geometry_manager()

@@ -1,14 +1,27 @@
 from commands import Command
+from geometry import Geometry, geometry_manager
+from PySide6.QtWidgets import QMessageBox
 import os
+
+class ImportError(Exception):
+    def __init__(self, why:str):
+        super().__init__(why)
 
 class IOHandler(Command):
     def __init__(self):
         super().__init__()
 
-    def importGeometry(self, fileName):
-        pass
+    def import_geometry(self, fileName):
+        try:
+            geometry = self.do_import_geometry(fileName)
+            geometry_manager.add_geometry([geometry])
+        except Exception as err:
+            QMessageBox.warning(None, "Error", "Problem loading '{}': {}".format(fileName, err))
 
-    def exportGeometry(self, fileName, geometry2export):
+    def do_import_geometry(self, file_name):
+        return []
+
+    def export_geometry(self, file_name, geometry2export):
         pass
 
     def supportsImport(self, fname):
