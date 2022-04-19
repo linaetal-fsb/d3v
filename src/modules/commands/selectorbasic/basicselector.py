@@ -5,7 +5,7 @@ import numpy as np
 from selection import Selector
 import time
 from PySide6.QtCore import Slot
-from selectorbasic.subDivBoxTree import SubDivBoxTree
+from selectorbasic.subdivboxtree import SubDivBoxTree
 
 
 class BasicSelector(Selector):
