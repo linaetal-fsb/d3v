@@ -1,5 +1,5 @@
-from PySide2.QtWidgets import QApplication, QMessageBox, QFileDialog
-from PySide2.QtCore import QSettings, QCommandLineParser, QCommandLineOption, QObject, QEvent
+from PySide6.QtWidgets import QApplication, QMessageBox, QFileDialog
+from PySide6.QtCore import QSettings, QCommandLineParser, QCommandLineOption, QObject, QEvent
 
 import sys
 import os

@@ -5,9 +5,9 @@ OpenGL Vertices data file documentation
 More detailssssssssss
 """
 from OpenGL import GL
-from PySide2.QtGui import QOpenGLBuffer, QOpenGLVertexArrayObject
-from PySide2.QtGui import QOpenGLContext
-from shiboken2.shiboken2 import VoidPtr
+from PySide6.QtOpenGL import QOpenGLBuffer, QOpenGLVertexArrayObject
+from PySide6.QtGui import QOpenGLContext
+from shiboken6 import VoidPtr
 
 from a_painterbasic.glhelp import GLDataType
 

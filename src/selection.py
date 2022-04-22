@@ -1,5 +1,5 @@
-from PySide2.QtCore import QObject
-from PySide2.QtGui import QVector3D
+from PySide6.QtCore import QObject
+from PySide6.QtGui import QVector3D
 from geometry import Geometry
 from signals import Signals
 from selinfo import  SelectionInfo

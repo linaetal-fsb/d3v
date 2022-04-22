@@ -1,5 +1,5 @@
 from selection import Selector
-from PySide2.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 from selectorbasic.basicselector import BasicSelector
 
 def createCommand():

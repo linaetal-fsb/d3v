@@ -1,4 +1,4 @@
-from PySide2.QtGui import QVector3D
+from PySide6.QtGui import QVector3D
 import numpy as np
 
 class BBox():

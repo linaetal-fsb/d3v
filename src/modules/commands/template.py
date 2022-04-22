@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QMenu, QMessageBox
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
 from commands import Command
 
 import openmesh as om

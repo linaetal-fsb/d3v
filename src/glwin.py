@@ -1,6 +1,8 @@
-from PySide2.QtWidgets import QOpenGLWidget, QApplication
-from PySide2.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion, QOpenGLDebugLogger, QOpenGLDebugMessage
-from PySide2.QtCore import Qt, QRect, Slot
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtGui import QMouseEvent, QMatrix4x4, QVector3D, QQuaternion
+from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLDebugMessage
+from PySide6.QtCore import Qt, QRect, Slot
 
 import uuid
 import numpy as np
@@ -42,6 +44,9 @@ class GlWin(QOpenGLWidget):
         self._selector = Selector()
 
     def paintGL(self):
+        if not self.glPainters and self._paintCounter == 50:
+            QMessageBox.warning(self, "Problem", "No glPainters defined")
+
         Signals.get().updateGL.emit()
         self._paintCounter += 1
 #        print("paint/select: {}/{}".format(self._paintCounter, self._selectCounter))

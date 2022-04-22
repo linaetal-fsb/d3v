@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 from application import App
-from PySide2.QtCore import QCoreApplication, Qt
+from PySide6.QtCore import QCoreApplication, Qt
 import mainwin
 
 import sys

@@ -4,7 +4,7 @@ import openmesh as om
 import numpy as np
 from selection import Selector
 import time
-from PySide2.QtCore import Slot
+from PySide6.QtCore import Slot
 from selectorbasic.subdivboxtree import SubDivBoxTree
 
 
