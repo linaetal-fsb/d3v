@@ -52,7 +52,7 @@
      <property name="handleWidth">
       <number>5</number>
      </property>
-     <widget class="QTreeView" name="geometryTree"/>
+     <widget class="GeometryTree" name="geometryTree"/>
      <widget class="GlWin" name="glWin">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -70,6 +70,11 @@
    <class>GlWin</class>
    <extends>QOpenGLWidget</extends>
    <header>glwin.h</header>
+  </customwidget>
+  <customwidget>
+   <class>GeometryTree</class>
+   <extends>QTreeView</extends>
+   <header>geometry_tree.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

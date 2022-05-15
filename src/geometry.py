@@ -1,9 +1,11 @@
 import openmesh as om
 import uuid
 from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtGui import QStandardItemModel, QStandardItem
 
 from bounds import BBox
 import enum
+from geometry_tree import GTreeItem
 
 class Geometry(QObject):
     def __init__(self, name = '', guid=None):
@@ -58,10 +60,19 @@ class __geometry_manager(QObject):
 
     def __init__(self):
         super().__init__()
+        self.__view_model = QStandardItemModel()
+
+        itm = QStandardItem("root")
+        self.__view_model.setItem(0, 0, itm)
 
     def add_geometry(self, geometry_2_add):
         g2a = set(geometry_2_add)
         self.__loaded_geometry |= g2a
+        for g in g2a:
+            GTreeItem.load(g)
+#        for g in g2a:
+#            itm = QStandardItem(str(g.guid))
+#            self.__view_model.setItem(0,0, itm)
         self.geometry_created.emit(list(geometry_2_add))
 
 
@@ -104,5 +115,8 @@ class __geometry_manager(QObject):
     def selected_geometry(self):
         return self.__selected_geometry
 
+    @property
+    def view_model(self):
+        return self.__view_model
 
 geometry_manager = __geometry_manager()
