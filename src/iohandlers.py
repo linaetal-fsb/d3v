@@ -1,5 +1,5 @@
 from commands import Command
-from geometry import Geometry, geometry_manager
+from core import Geometry, geometry_manager
 from PySide6.QtWidgets import QMessageBox
 import os
 

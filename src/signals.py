@@ -1,7 +1,7 @@
 from PySide6.QtCore import QObject, QPoint, QPointF, QSize, QRect, Signal, Slot
 from PySide6.QtGui import QMatrix4x4, QVector3D, QVector4D
 
-from geometry import Geometry
+from core import Geometry
 from selinfo import SelectionInfo
 
 class DragInfo:

@@ -4,7 +4,7 @@ from commands import Command
 import openmesh as om
 import numpy as np
 from signals import Signals
-from geometry import Geometry
+from core import Geometry
 
 
 class TemplateCommand(Command):

@@ -12,7 +12,7 @@ from signals import Signals, DragInfo
 from bounds import  BBox
 from selection import Selector
 from application import App
-from geometry import geometry_manager
+from core import geometry_manager
 
 
 class GlWin(QOpenGLWidget):

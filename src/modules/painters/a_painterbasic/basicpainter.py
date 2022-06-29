@@ -11,7 +11,7 @@ from a_painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3f
 from a_painterbasic.glhelp import GLEntityType, GLHelpFun, GLDataType
 from OpenGL import GL
 from PySide6.QtCore import QCoreApplication
-from geometry import Geometry, geometry_manager
+from core import Geometry, geometry_manager
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo

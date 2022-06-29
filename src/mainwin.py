@@ -5,7 +5,7 @@ import os
 
 from glwin import GlWin
 from application import App
-from geometry_tree import GeometryTree
+from core import GeometryTree, geometry_manager
 
 class MainFrame(QMainWindow):
     def __init__(self, parent = None):

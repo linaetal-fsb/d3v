@@ -73,7 +73,7 @@
   </customwidget>
   <customwidget>
    <class>GeometryTree</class>
-   <extends>QTreeView</extends>
+   <extends>QTreeWidget</extends>
    <header>geometry_tree.h</header>
   </customwidget>
  </customwidgets>
