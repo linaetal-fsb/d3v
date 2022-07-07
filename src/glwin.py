@@ -118,7 +118,7 @@ class GlWin(QOpenGLWidget):
         if event.button() == Qt.LeftButton and self.dragInfo.wCurrentPos == self.dragInfo.wStartPos:
             P0 = self.dragInfo.mCurrentPos
             K = rotation(self.mv).conjugated().rotatedVector(QVector3D(0.0, 0.0, -1.0))
-            self.selector.select([P0,K], App.instance().geometry)
+            self.selector.select([P0,K])
             self._selectCounter += 1
             self.update()
 

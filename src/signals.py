@@ -59,9 +59,7 @@ class Signals(QObject):
     dragging = Signal(DragInfo)
     draggingEnd = Signal(DragInfo)
 
-    geometryImported = Signal(Geometry)
     importGeometry = Signal(str)
-    selectionChanged = Signal(SelectionInfo)
 
     def __init__(self):
         """ Virtually private constructor. """

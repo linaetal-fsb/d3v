@@ -14,7 +14,7 @@ class IOHandler(Command):
     def import_geometry(self, fileName):
         try:
             geometry = self.do_import_geometry(fileName)
-            geometry_manager.add_geometry([geometry])
+            return geometry
         except Exception as err:
             QMessageBox.warning(None, "Error", "Problem loading '{}': {}".format(fileName, err))
 

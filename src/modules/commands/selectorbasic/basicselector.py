@@ -6,6 +6,7 @@ from selection import Selector
 import time
 from PySide6.QtCore import Slot
 from selectorbasic.subdivboxtree import SubDivBoxTree
+from core import geometry_manager
 
 
 class BasicSelector(Selector):
@@ -13,7 +14,7 @@ class BasicSelector(Selector):
         super().__init__()
         self.subDivBoxTrees = {}
 
-        Signals.get().geometryAdded.connect(self.onGeometryAdded)
+        geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
 
     def addGeometry(self, geometry):
         """
@@ -29,6 +30,11 @@ class BasicSelector(Selector):
     def onGeometryAdded(self, geometry):
         self.addGeometry(geometry)
 
+    @Slot()
+    def onVisibleGeometryChanged(self, visible, loaded, selected):
+        for g in visible:
+            self.addGeometry(g)
+
     def removeGeometry(self, geometry):
         """
         Removes the SubDixBoxTree which corresponds to geometry from the dict.
@@ -37,12 +43,13 @@ class BasicSelector(Selector):
         """
         self.subDivBoxTrees.pop(geometry.guid)
 
-    def select(self, los, geometries):
+    def _select(self, los, geometries):
         tSS = time.perf_counter()
-        self.selectList(los, geometries)
+        si = self.selectList(los, geometries)
         dtS = time.perf_counter() - tSS
         if __debug__:
             print("Selection time, s:", dtS)
+        return si
 
     def selectList(self, los, geometries):
         """
@@ -99,7 +106,9 @@ class BasicSelector(Selector):
             selected = None
             si = SelectionInfo()
         # obavijesti sve zainteresirane da je selekcija promijenjena
-        Signals.get().selectionChanged.emit(si)
+
+        #Signals.get().selectionChanged.emit(si)
+        return si
 
     def getMeshInterscection(self, o, d, fhlist, points, fv_indices):
         """

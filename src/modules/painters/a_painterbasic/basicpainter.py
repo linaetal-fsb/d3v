@@ -54,9 +54,9 @@ class BasicPainter(Painter):
         # model / geometry
         self.addGeoCount = 0
 #        Signals.get().selectionChanged.connect(self.onSelected)
-        geometry_manager.selected_geometry_changed.connect(self.onSelected)
+#        geometry_manager.selected_geometry_changed.connect(self.onSelected)
         geometry_manager.geometry_created.connect(self.addGeometry)
-        geometry_manager.visible_geometry_changed.connect(self.onVisibleChanged)
+#        geometry_manager.visible_geometry_changed.connect(self.onVisibleChanged)
 
         self.paintDevice = 0
         # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData

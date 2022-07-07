@@ -20,10 +20,8 @@ class __geometry_manager(QObject):
     def add_geometry(self, geometry_2_add):
         g2a = set(geometry_2_add)
         self.__loaded_geometry |= g2a
-        #        for g in g2a:
-        #            itm = QStandardItem(str(g.guid))
-        #            self.__view_model.setItem(0,0, itm)
         self.geometry_created.emit(list(geometry_2_add))
+        self.visible_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
 
 
     def remove_geometry(self, geometry_2_remove:list):
@@ -43,8 +41,10 @@ class __geometry_manager(QObject):
         self.__visible_geometry |= g2s
         self.visible_geometry_changed.emit(list(self.__visible_geometry), list(self.__loaded_geometry), list(self.__selected_geometry))
 
-    def select_geometry(self, geometry_2_select):
-        g2s = set(geometry_2_select)
+    def select_geometry(self, geometry_2_select = None, selection_info = None):
+        assert(geometry_2_select is None or selection_info is None)
+        selected = geometry_2_select or selection_info.geometry,
+        g2s = set(selected)
         self.__selected_geometry |= g2s
         self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
 
@@ -55,15 +55,15 @@ class __geometry_manager(QObject):
 
     @property
     def loaded_geometry(self):
-        return self.__loaded_geometry
+        return list(self.__loaded_geometry)
 
     @property
     def visible_geometry(self):
-        return self.__visible_geometry
+        return list(self.__visible_geometry)
 
     @property
     def selected_geometry(self):
-        return self.__selected_geometry
+        return list(self.__selected_geometry)
 
     @property
     def view_model(self):

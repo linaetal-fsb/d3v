@@ -5,6 +5,7 @@ import sys
 import os
 import moduleImporter as importer
 from signals import Signals
+from core import geometry_manager
 
 class App(QApplication):
     def __init__(self,argv):
@@ -12,7 +13,6 @@ class App(QApplication):
         self.setApplicationVersion("0.1")
         self.setOrganizationName("testung")
         self.setApplicationName("d3v")
-        Signals.get().geometryImported.connect(self.registerGeometry)
         Signals.get().importGeometry.connect(self.doImportGeometry)
 
 # hardcoded path
@@ -167,11 +167,6 @@ class App(QApplication):
     def registerPainter(self, painter):
         self.painters.append(painter)
 
-    def registerGeometry(self, geometry):
-        self.geometry.append(geometry)
-        Signals.get().geometryAdded.emit(geometry)
-
-
     def onImportGeometry(self, checked:bool):
         dir = self.settings.value("io/lastImportLocation", ".")
         fname = QFileDialog.getOpenFileName(None, "Import Geometry", dir)
@@ -187,7 +182,10 @@ class App(QApplication):
     def doImportGeometry(self, fname):
         for h in self.iohandlers:
             if h.supportsImport(fname):
-                h.import_geometry(fname)
+                geometry = h.import_geometry(fname)
+                to_add = geometry,
+                geometry_manager.add_geometry(to_add)
+                geometry_manager.show_geometry(to_add)
                 return
         QMessageBox.warning(None, "Import geometry", "No suitable iohandler found to import")
 
