@@ -1,10 +1,49 @@
 from PySide6.QtWidgets import QTreeWidgetItem
-#from .geometry import Geometry
+from PySide6.QtGui import QAction
+from PySide6.QtCore import Slot
+
+from .geo_manager import  geometry_manager
 
 class GTreeItem(QTreeWidgetItem):
     def __init__(self, name:str, geometry):
         super(GTreeItem, self).__init__([name])
         self._geometry = geometry
+
+        self.setup_actions()
+
+
+
+    def setup_actions(self):
+        self._actions = []
+
+        hide_action = QAction("Hide")
+        hide_action.triggered.connect(self.hide)
+        self._actions.append(hide_action)
+
+        show_action = QAction("Show")
+        show_action.triggered.connect(self.show)
+        self._actions.append(show_action)
+
+        unload_action = QAction("Unload")
+        hide_action.triggered.connect(self.unload)
+        self._actions.append(unload_action)
+
+
+    @Slot()
+    def hide(self):
+        geometry_manager.hide_geometry(tuple(self.geometry))
+
+    @Slot()
+    def show(self):
+        geometry_manager.show_geometry(tuple(self.geometry))
+
+    @Slot()
+    def unload(self):
+        pass
+
+    @property
+    def actions(self):
+        return self._actions
 
     @property
     def geometry(self):

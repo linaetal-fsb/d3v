@@ -56,6 +56,7 @@ class BasicPainter(Painter):
 #        Signals.get().selectionChanged.connect(self.onSelected)
         geometry_manager.selected_geometry_changed.connect(self.onSelected)
         geometry_manager.geometry_created.connect(self.addGeometry)
+        geometry_manager.visible_geometry_changed.connect(self.onVisibleChanged)
 
         self.paintDevice = 0
         # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
@@ -466,6 +467,12 @@ class BasicPainter(Painter):
     def addGeometry(self, geometry: list):
         for g in geometry:
             self._geo2Add.append(g)
+        self.requestGLUpdate()
+
+    @Slot()
+    def onVisibleChanged(self, visible, loaded, selected):
+        self.resetmodel()
+        self._geo2Add = visible
         self.requestGLUpdate()
 
     def removeGeometry(self, geometry: Geometry):

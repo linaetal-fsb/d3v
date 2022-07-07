@@ -32,16 +32,16 @@ class __geometry_manager(QObject):
         self.geometry_removed.emit(to_emit)
 
 
-    def hide_geometry(self, geometry_2_hide: list):
+    def hide_geometry(self, geometry_2_hide):
         hidden = set(geometry_2_hide)
         self.__visible_geometry -= hidden
-        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+        self.visible_geometry_changed.emit(list(self.__visible_geometry), list(self.__loaded_geometry), list(self.__selected_geometry))
 
 
-    def show_geometry(self, geometry_2_show: list):
+    def show_geometry(self, geometry_2_show):
         g2s = set(geometry_2_show)
         self.__visible_geometry |= g2s
-        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+        self.visible_geometry_changed.emit(list(self.__visible_geometry), list(self.__loaded_geometry), list(self.__selected_geometry))
 
     def select_geometry(self, geometry_2_select):
         g2s = set(geometry_2_select)

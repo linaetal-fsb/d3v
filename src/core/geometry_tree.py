@@ -12,18 +12,21 @@ class GeometryTree(QTreeWidget):
         super().__init__(parent)
         geometry_manager.geometry_created.connect(self.on_geometry_created)
         self.itemActivated.connect(self.on_item_changed)
-        self.ad
- #       self.setContextMenuPolicy(Qt.CustomContextMenu)
-#        self.customContextMenuRequested.connect(self.on_context_menu)
 
-    def contextMenuEvent(self, evt: QtGui.QContextMenuEvent) -> None:
-        menu = QMenu()
-        menu.addActions(self.actions())
-        menu.exec()
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.on_context_menu)
 
     @Slot()
-    def on_context_menu(self):
-        pass
+    def on_context_menu(self, evt: QtGui.QContextMenuEvent) -> None:
+        menu = QMenu()
+        menu.addActions(self.actions())
+        item = self.itemAt(evt)
+        menu.addActions(item.actions)
+        menu.exec(self.viewport().mapToGlobal(evt))
+
+#    @Slot()
+#    def on_context_menu(self):
+#        pass
 
     @Slot()
     def on_geometry_created(self, new_geometry):

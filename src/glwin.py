@@ -82,6 +82,7 @@ class GlWin(QOpenGLWidget):
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
         geometry_manager.geometry_created.connect(self.onGeometryAdded)
+        geometry_manager.visible_geometry_changed.connect(self.on_visible_geometry_changed)
 
         for p in self.glPainters:
             p.initializeGL(self)
@@ -201,6 +202,11 @@ class GlWin(QOpenGLWidget):
         for g in geometry:
             self._bb =  self._bb + g.bbox
         self.update()
+
+    @Slot()
+    def on_visible_geometry_changed(self, visible, loaded, selected):
+        pass
+
 
     @Slot()
     def showGlDebugMessage(self, msg:QOpenGLDebugMessage):
