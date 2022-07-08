@@ -1,6 +1,6 @@
 from PySide6.QtCore import QObject
 import openmesh as om
-from geometry import Geometry
+from core import Geometry
 class SelectionInfo(QObject):
 
     def __init__(self, orig=None):

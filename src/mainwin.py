@@ -5,6 +5,7 @@ import os
 
 from glwin import GlWin
 from application import App
+from core import GeometryTree, geometry_manager
 
 class MainFrame(QMainWindow):
     def __init__(self, parent = None):
@@ -49,9 +50,11 @@ def create():
     file.open(QFile.ReadOnly)
     loader = QUiLoader()
     loader.registerCustomWidget(GlWin)
+    loader.registerCustomWidget(GeometryTree)
     mainwin = MainFrame()
-    mainwin.window = loader.load(file, mainwin)
+    mainwin.window = loader.load(file) #, mainwin)
     mainwin.setCentralWidget(mainwin.window)
     file.close()
     mainwin.glWin_ = mainwin.window.findChild(GlWin, "glWin")
+    mainwin.gTree_ = mainwin.window.findChild(GeometryTree, "geometryTree")
     return mainwin

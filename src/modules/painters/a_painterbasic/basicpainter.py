@@ -11,7 +11,7 @@ from a_painterbasic.glvertdatasforhaders import VertDataCollectorCoord3fNormal3f
 from a_painterbasic.glhelp import GLEntityType, GLHelpFun, GLDataType
 from OpenGL import GL
 from PySide6.QtCore import QCoreApplication
-from geometry import Geometry
+from core import Geometry, geometry_manager
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
@@ -53,7 +53,11 @@ class BasicPainter(Painter):
         self.fragmentShader = self.fragmentShaderSource()
         # model / geometry
         self.addGeoCount = 0
-        Signals.get().selectionChanged.connect(self.onSelected)
+#        Signals.get().selectionChanged.connect(self.onSelected)
+#        geometry_manager.selected_geometry_changed.connect(self.onSelected)
+        geometry_manager.geometry_created.connect(self.addGeometry)
+#        geometry_manager.visible_geometry_changed.connect(self.onVisibleChanged)
+
         self.paintDevice = 0
         # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
         self.selType = SelModes.FACET_FILL_GLOFFSET     # Full geometry by shader2
@@ -88,7 +92,7 @@ class BasicPainter(Painter):
 
         self.selectionColor = QVector4D(1.0, 0.0, 1.0, 1.0)
 
-        self.showModelWireframe = True
+        self.showModelWireframe = False
         if self.showModelWireframe:
             self.line_indices = []
             self.polygonWFColor = QVector4D(1.0, 0.0, 0.0, 1.0)
@@ -459,8 +463,16 @@ class BasicPainter(Painter):
 
     # Painter methods implementation code ********************************************************
 
-    def addGeometry(self, geometry: Geometry):
-        self._geo2Add.append(geometry)
+    @Slot()
+    def addGeometry(self, geometry: list):
+        for g in geometry:
+            self._geo2Add.append(g)
+        self.requestGLUpdate()
+
+    @Slot()
+    def onVisibleChanged(self, visible, loaded, selected):
+        self.resetmodel()
+        self._geo2Add = visible
         self.requestGLUpdate()
 
     def removeGeometry(self, geometry: Geometry):
@@ -516,7 +528,7 @@ class BasicPainter(Painter):
             n_not_lines = len(not_lines)
             n_lines = n_possible_lines - n_not_lines
 
-            self.appenddictitemsize(key, n_lines)
+            self.appenddictitemsize(key, n_lines*2)
             self.allocatememory(key)
 
             self.addWFdata4oglmdl(key, geometry)

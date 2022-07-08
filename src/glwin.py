@@ -12,6 +12,7 @@ from signals import Signals, DragInfo
 from bounds import  BBox
 from selection import Selector
 from application import App
+from core import geometry_manager
 
 
 class GlWin(QOpenGLWidget):
@@ -80,7 +81,8 @@ class GlWin(QOpenGLWidget):
 
         Signals.get().dragging.connect(self.onDrag)
         Signals.get().draggingEnd.connect(self.onDragEnd)
-        Signals.get().geometryAdded.connect(self.onGeometryAdded)
+        geometry_manager.geometry_created.connect(self.onGeometryAdded)
+        geometry_manager.visible_geometry_changed.connect(self.on_visible_geometry_changed)
 
         for p in self.glPainters:
             p.initializeGL(self)
@@ -116,7 +118,7 @@ class GlWin(QOpenGLWidget):
         if event.button() == Qt.LeftButton and self.dragInfo.wCurrentPos == self.dragInfo.wStartPos:
             P0 = self.dragInfo.mCurrentPos
             K = rotation(self.mv).conjugated().rotatedVector(QVector3D(0.0, 0.0, -1.0))
-            self.selector.select([P0,K], App.instance().geometry)
+            self.selector.select([P0,K])
             self._selectCounter += 1
             self.update()
 
@@ -197,10 +199,14 @@ class GlWin(QOpenGLWidget):
 
     @Slot()
     def onGeometryAdded(self, geometry):
-        self._bb =  self._bb + geometry.bbox
-        for p in self.glPainters:
-            p.addGeometry(geometry)
+        for g in geometry:
+            self._bb =  self._bb + g.bbox
         self.update()
+
+    @Slot()
+    def on_visible_geometry_changed(self, visible, loaded, selected):
+        pass
+
 
     @Slot()
     def showGlDebugMessage(self, msg:QOpenGLDebugMessage):

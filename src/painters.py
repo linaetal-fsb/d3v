@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QApplication
 import uuid
 
 from commands import Command
-from geometry import Geometry
+from core import Geometry
 from signals import Signals
 
 class Painter(Command, QObject):
