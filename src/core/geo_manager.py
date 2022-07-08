@@ -5,8 +5,12 @@ from PySide6.QtGui import QStandardItemModel, QStandardItem
 class __geometry_manager(QObject):
 
     #signals
-    visible_geometry_changed = Signal(list, list, list ) # visible, loaded, selected
-    selected_geometry_changed = Signal(list, list)     # selected, visible
+
+    # emitted right before any change in geometry
+    geometry_state_changing = Signal(list, list, list)       # visible, loaded, selected
+
+    visible_geometry_changed = Signal(list, list, list)      # visible, loaded, selected
+    selected_geometry_changed = Signal(list, list, list)     # visible, loaded, selected
     geometry_created = Signal(list)
     geometry_removed = Signal(list)
 
@@ -18,40 +22,43 @@ class __geometry_manager(QObject):
         super().__init__()
 
     def add_geometry(self, geometry_2_add):
+        self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
         g2a = set(geometry_2_add)
         self.__loaded_geometry |= g2a
         self.geometry_created.emit(list(geometry_2_add))
         self.visible_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
 
-
     def remove_geometry(self, geometry_2_remove:list):
+        self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
         self.__loaded_geometry = set(self.__loaded_geometry) - set(geometry_2_remove)
         to_emit = list(geometry_2_remove - self.__loaded_geometry)
         self.geometry_removed.emit(to_emit)
 
-
     def hide_geometry(self, geometry_2_hide):
+        self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
         hidden = set(geometry_2_hide)
         self.__visible_geometry -= hidden
-        self.visible_geometry_changed.emit(list(self.__visible_geometry), list(self.__loaded_geometry), list(self.__selected_geometry))
-
+        self.visible_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
 
     def show_geometry(self, geometry_2_show):
+        self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
         g2s = set(geometry_2_show)
         self.__visible_geometry |= g2s
-        self.visible_geometry_changed.emit(list(self.__visible_geometry), list(self.__loaded_geometry), list(self.__selected_geometry))
+        self.visible_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
 
     def select_geometry(self, geometry_2_select = None, selection_info = None):
         assert(geometry_2_select is None or selection_info is None)
+        self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
         selected = geometry_2_select or selection_info.geometry,
         g2s = set(selected)
         self.__selected_geometry |= g2s
-        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+        self.selected_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
 
     def unselect_geometry(self, geometry_2_unselect):
+        self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
         g2u = set(geometry_2_unselect)
         self.__selected_geometry -= g2u
-        self.visible_geometry_changed.emit(self.__visible_geometry, self.__loaded_geometry, self.__selected_geometry)
+        self.selected_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
 
     @property
     def loaded_geometry(self):

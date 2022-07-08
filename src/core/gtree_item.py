@@ -31,11 +31,13 @@ class GTreeItem(QTreeWidgetItem):
 
     @Slot()
     def hide(self):
-        geometry_manager.hide_geometry(tuple(self.geometry))
+        g2h = self.geometry,
+        geometry_manager.hide_geometry(g2h)
 
     @Slot()
     def show(self):
-        geometry_manager.show_geometry(tuple(self.geometry))
+        g2h = self.geometry,
+        geometry_manager.show_geometry(g2h)
 
     @Slot()
     def unload(self):
