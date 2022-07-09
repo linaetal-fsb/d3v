@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, Signal
 from core import geometry_manager
 from PySide6.QtGui import QVector3D
 from core import Geometry
@@ -10,6 +10,8 @@ import math
 
 
 class Selector(QObject):
+    selection_info_changled = Signal(SelectionInfo)
+
     def __init__(self):
         super().__init__(None)
 
@@ -17,6 +19,7 @@ class Selector(QObject):
         geometry = srcGeometry or geometry_manager.visible_geometry
         si = self._select(los, geometry) if geometry else SelectionInfo()
         if publish:
+            self.selection_info_changled.emit(si)
             geometry_manager.select_geometry(selection_info=si)
 
     def _select(self, los, geometry):
