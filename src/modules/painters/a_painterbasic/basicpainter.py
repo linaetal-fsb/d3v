@@ -12,6 +12,7 @@ from a_painterbasic.glhelp import GLEntityType, GLHelpFun, GLDataType
 from OpenGL import GL
 from PySide6.QtCore import QCoreApplication
 from core import Geometry, geometry_manager
+import selection
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
@@ -64,14 +65,12 @@ class BasicPainter(Painter):
         geometry_manager.geometry_state_changing.connect(self.onGeometryStateChanging)
         geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
         geometry_manager.selected_geometry_changed.connect(self.onSelectedGeometryChanged)
+        QApplication.instance().mainFrame.glWin.selector.selection_info_changled.connect(self.onSelectedInfoChanged)
 
         self.paintDevice = 0
-        # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
-        self.selType = SelModes.FACET_FILL_GLOFFSET     # Full geometry by shader2
-        # self.selType = SelModes.FACET_FILL              # Facet by filled triangle with z-fight compensation
-        #self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
-        # self.selType = SelModes.FACET_WF              # Facet by wireframe
-        # self.selType = SelModes.FULL_WF               # Full geometry by PolygonMode
+        self.selType = SelModes.FULL_FILL_SHADER
+        #self.selType = SelModes.FACET_FILL_GLOFFSET     # Full geometry by shader2
+
         # Note: _WF selection modes are not reasonable for everything bigger than triangles, because the wireframe
         # is applied by ogl shader and all geometries are drawn as triangles
         self._showBack = False
@@ -470,6 +469,9 @@ class BasicPainter(Painter):
                """
 
     # Painter methods implementation code ********************************************************
+    @Slot()
+    def onSelectedInfoChanged(self, si: SelectionInfo):
+        self._last_si = si
 
     @Slot()
     def onGeometryCreated(self, geometries:List[Geometry]):
@@ -493,12 +495,7 @@ class BasicPainter(Painter):
 
     @Slot()
     def onSelectedGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
-        si = SelectionInfo()
-        if len(selected) >0:
-            si = SelectionInfo()
-            si.distance = 1
-            si.geometry = selected[0]
-
+        si = self._last_si
         if self.selType == SelModes.FULL_FILL_NEWMESH:  # whole geometry selection
             if self._si.haveSelection() and si.haveSelection():
                 if self._si.geometry._guid != si.geometry._guid:
