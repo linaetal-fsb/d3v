@@ -12,6 +12,7 @@ from a_painterbasic.glhelp import GLEntityType, GLHelpFun, GLDataType
 from OpenGL import GL
 from PySide6.QtCore import QCoreApplication
 from core import Geometry, geometry_manager
+import selection
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
@@ -19,6 +20,7 @@ from PySide6.QtGui import QBrush, QPainter, QPen, QPolygon, QColor, QFont
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtWidgets import QApplication
 import time
+from typing import List,Dict
 
 
 class SelModes(Enum):
@@ -37,9 +39,9 @@ class BasicPainter(Painter):
         """
         super().__init__()
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
-        self._geo2Add = []
-        self._geo2Rebuild = []
-        self._geo2Remove = []
+        self._geo2Add:List[Geometry] = []
+        self._geo2Rebuild:List[Geometry] = []
+        self._geo2Remove:List[Geometry] = []
         self._doSelection = False
         self._si = SelectionInfo()
         self.program = 0
@@ -55,16 +57,20 @@ class BasicPainter(Painter):
         self.addGeoCount = 0
 #        Signals.get().selectionChanged.connect(self.onSelected)
 #        geometry_manager.selected_geometry_changed.connect(self.onSelected)
-        geometry_manager.geometry_created.connect(self.addGeometry)
+        #geometry_manager.geometry_created.connect(self.addGeometry)
 #        geometry_manager.visible_geometry_changed.connect(self.onVisibleChanged)
 
+        geometry_manager.geometry_created.connect(self.onGeometryCreated)
+        geometry_manager.geometry_removed.connect(self.onGeometryRemoved)
+        geometry_manager.geometry_state_changing.connect(self.onGeometryStateChanging)
+        geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
+        geometry_manager.selected_geometry_changed.connect(self.onSelectedGeometryChanged)
+        QApplication.instance().mainFrame.glWin.selector.selection_info_changled.connect(self.onSelectedInfoChanged)
+
         self.paintDevice = 0
-        # self.selType = SelModes.FULL_FILL_NEWMESH     # Full geometry by addMeshData
-        self.selType = SelModes.FACET_FILL_GLOFFSET     # Full geometry by shader2
-        # self.selType = SelModes.FACET_FILL              # Facet by filled triangle with z-fight compensation
-        #self.selType = SelModes.FACET_FILL_GLOFFSET   # Facet by filled triangle with glPolygonOffset to avoid z-fight
-        # self.selType = SelModes.FACET_WF              # Facet by wireframe
-        # self.selType = SelModes.FULL_WF               # Full geometry by PolygonMode
+        self.selType = SelModes.FULL_FILL_SHADER
+        #self.selType = SelModes.FACET_FILL_GLOFFSET     # Full geometry by shader2
+
         # Note: _WF selection modes are not reasonable for everything bigger than triangles, because the wireframe
         # is applied by ogl shader and all geometries are drawn as triangles
         self._showBack = False
@@ -96,6 +102,7 @@ class BasicPainter(Painter):
         if self.showModelWireframe:
             self.line_indices = []
             self.polygonWFColor = QVector4D(1.0, 0.0, 0.0, 1.0)
+        self._last_si = SelectionInfo()
 
     @property
     def showBack(self):
@@ -462,23 +469,64 @@ class BasicPainter(Painter):
                """
 
     # Painter methods implementation code ********************************************************
+    @Slot()
+    def onSelectedInfoChanged(self, si: SelectionInfo):
+        self._last_si = si
 
     @Slot()
-    def addGeometry(self, geometry: list):
-        for g in geometry:
-            self._geo2Add.append(g)
+    def onGeometryCreated(self, geometries:List[Geometry]):
+        self._geo2Add.extend(geometries)
         self.requestGLUpdate()
 
     @Slot()
-    def onVisibleChanged(self, visible, loaded, selected):
-        self.resetmodel()
-        self._geo2Add = visible
+    def onGeometryRemoved(self, geometries:List[Geometry]):
+        self._geo2Remove.extend(geometries)
         self.requestGLUpdate()
 
-    def removeGeometry(self, geometry: Geometry):
-        self._geo2Remove.append(geometry)
-        self.requestGLUpdate()
+    @Slot()
+    def onGeometryStateChanging(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
         pass
+
+    @Slot()
+    def onVisibleGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
+        self.resetmodel()
+        self._geo2Add.extend(visible)
+        self.requestGLUpdate()
+
+    @Slot()
+    def onSelectedGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
+        si = self._last_si
+        if self.selType == SelModes.FULL_FILL_NEWMESH:  # whole geometry selection
+            if self._si.haveSelection() and si.haveSelection():
+                if self._si.geometry._guid != si.geometry._guid:
+                    self._geo2Remove.append(si.geometry)
+                    self._geo2Remove.append(self._si.geometry)
+                    self._geo2Add.append(self._si.geometry)
+                    self._geo2Add.append(si.geometry)
+                    self.requestGLUpdate()
+
+            elif si.haveSelection():
+                self._geo2Remove.append(si.geometry)
+                self._geo2Add.append(si.geometry)
+                self.requestGLUpdate()
+
+            elif self._si.haveSelection():
+                self._geo2Remove.append(self._si.geometry)
+                self._geo2Add.append(self._si.geometry)
+                self.requestGLUpdate()
+
+            self._si = si
+
+        elif self.selType in [SelModes.FACET_WF, SelModes.FACET_FILL, SelModes.FACET_FILL_GLOFFSET]:
+            self._doSelection = True
+            self._si = si
+            self.requestGLUpdate()
+
+        elif self.selType in [SelModes.FULL_FILL_SHADER, SelModes.FULL_WF]:
+            self._si = si
+
+        pass
+
 
     def rebuildGeometry(self, geometry: Geometry):
         self._geo2Rebuild.append(geometry)

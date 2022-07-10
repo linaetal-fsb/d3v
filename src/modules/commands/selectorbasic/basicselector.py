@@ -13,8 +13,18 @@ class BasicSelector(Selector):
     def __init__(self):
         super().__init__()
         self.subDivBoxTrees = {}
+        geometry_manager.geometry_created.connect(self.onGeometryCreated)
+        geometry_manager.geometry_removed.connect(self.onGeometryRemoved)
 
-        geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
+    @Slot()
+    def onGeometryCreated(self, geometries):
+        for g in geometries:
+            self.addGeometry(g)
+
+    @Slot()
+    def onGeometryRemoved(self, geometries):
+        for g in geometries:
+            self.removeGeometry(g)
 
     def addGeometry(self, geometry):
         """
@@ -25,15 +35,6 @@ class BasicSelector(Selector):
         subDivBoxTree = SubDivBoxTree(geometry.mesh)
         subDivBoxTree.createTreeRoot(geometry.bbox)
         self.subDivBoxTrees[geometry.guid] = subDivBoxTree
-
-    @Slot()
-    def onGeometryAdded(self, geometry):
-        self.addGeometry(geometry)
-
-    @Slot()
-    def onVisibleGeometryChanged(self, visible, loaded, selected):
-        for g in visible:
-            self.addGeometry(g)
 
     def removeGeometry(self, geometry):
         """
