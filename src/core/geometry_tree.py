@@ -11,7 +11,7 @@ class GeometryTree(QTreeWidget):
     def __init__(self, parent = None):
         super().__init__(parent)
         geometry_manager.geometry_created.connect(self.on_geometry_created)
-        self.itemActivated.connect(self.on_item_changed)
+        self.itemSelectionChanged.connect(self.on_item_changed)
 
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_context_menu)
@@ -44,5 +44,9 @@ class GeometryTree(QTreeWidget):
 
 
     @Slot()
-    def on_item_changed(self, item: GTreeItem):
-        geometry_manager.select_geometry([item.geometry])
+    def on_item_changed(self): #, item: GTreeItem):
+        selected = []
+        for s in self.selectedItems():
+            selected.append(s.geometry)
+        t = tuple(selected)
+        geometry_manager.select_geometry(t)

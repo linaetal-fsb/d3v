@@ -118,7 +118,10 @@ class GlWin(QOpenGLWidget):
         if event.button() == Qt.LeftButton and self.dragInfo.wCurrentPos == self.dragInfo.wStartPos:
             P0 = self.dragInfo.mCurrentPos
             K = rotation(self.mv).conjugated().rotatedVector(QVector3D(0.0, 0.0, -1.0))
-            self.selector.select([P0,K])
+            si = self.selector.select([P0,K])
+            kb = QApplication.keyboardModifiers()
+            exclusive = kb == Qt.ShiftModifier
+            geometry_manager.select_geometry(selection_info=si, exclusive_selection = exclusive)
             self._selectCounter += 1
             self.update()
 

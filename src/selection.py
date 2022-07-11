@@ -20,7 +20,7 @@ class Selector(QObject):
         si = self._select(los, geometry) if geometry else SelectionInfo()
         if publish:
             self.selection_info_changled.emit(si)
-            geometry_manager.select_geometry(selection_info=si)
+        return si
 
     def _select(self, los, geometry):
         return SelectionInfo()
