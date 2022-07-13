@@ -49,9 +49,10 @@ class __geometry_manager(QObject):
     def select_geometry(self, geometry_2_select = None, selection_info = None, exclusive_selection = True):
         assert(geometry_2_select is None or selection_info is None)
         self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
-        if exclusive_selection == True:
+        if exclusive_selection:
             self.__selected_geometry.clear()
-        selected = geometry_2_select or selection_info.geometry,
+        selected = geometry_2_select or (selection_info.geometry,)
+        print("{}".format(selected[0].guid))
         g2s = set(selected)
         self.__selected_geometry |= g2s
         self.selected_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
