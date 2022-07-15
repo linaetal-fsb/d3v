@@ -6,6 +6,7 @@ import os
 import moduleImporter as importer
 from signals import Signals
 from core import geometry_manager
+import logging
 
 class App(QApplication):
     def __init__(self,argv):
@@ -14,8 +15,10 @@ class App(QApplication):
         self.setOrganizationName("testung")
         self.setApplicationName("d3v")
         Signals.get().importGeometry.connect(self.doImportGeometry)
+        geometry_manager.visible_geometry_changed.connect(self.request_update)
+        geometry_manager.selected_geometry_changed.connect(self.request_update)
 
-# hardcoded path
+    # hardcoded path
 #        defModulesPaths = os.path.join(self.applicationDirPath(), 'modules')
         defModulesPaths = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modules')
         self.modulesPaths = []
@@ -75,8 +78,10 @@ class App(QApplication):
         apath = QCommandLineOption(('a','add-modules-path'), 'additional path where modules are searched for', valueName = 'path')
         rpath = QCommandLineOption(('r','replace-modules-path'), 'force new path where modules are searched for, instead of default one', valueName = 'path')
         saveOpts = QCommandLineOption(('s','save-options'), 'make command line options permanent for future usage')
+        llevel = QCommandLineOption(('l','log-level'), 'verbosity of the logging. oen of (debug,info,warning,error,critical)', valueName = 'log_level')
         parser.addOption(apath)
         parser.addOption(rpath)
+        parser.addOption(llevel)
         parser.addOption(saveOpts)
         parser.addPositionalArgument('model','list of files (i.e. models) to load')
 
@@ -91,6 +96,20 @@ class App(QApplication):
         if parser.isSet(version):
             parser.showVersion()
             sys.exit(0)
+
+        if parser.isSet(llevel):
+            levels = {
+                    'debug': logging.DEBUG,
+                    'info': logging.INFO,
+                    'warning': logging.WARNING,
+                    'error': logging.ERROR,
+                    'critical':logging.CRITICAL
+                    }
+            v = parser.value(llevel)
+            if v not in levels.keys():
+                print('log level must be one of: {}'.format(list(levels.keys())))
+                sys.exit(-2)
+            logging.basicConfig(level=levels[v])
 
         if parser.isSet(rpath):
             self.modulesPaths = [parser.value(rpath)]
@@ -196,3 +215,8 @@ class App(QApplication):
     @mainFrame.setter
     def mainFrame(self, mainFrame):
         self._mainFrame = mainFrame
+
+
+    def request_update(self, visible, loaded, selected):
+        self.mainFrame.update()
+
