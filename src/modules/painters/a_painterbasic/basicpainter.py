@@ -66,8 +66,8 @@ class BasicPainter(Painter):
         QApplication.instance().mainFrame.glWin.selector.selection_info_changled.connect(self.onSelectedInfoChanged)
 
         self.paintDevice = 0
-        #self.selType = SelModes.FULL_FILL_SHADER
-        self.selType = SelModes.FACET_FILL_GLOFFSET
+        self.selType = SelModes.FULL_FILL_SHADER
+        #self.selType = SelModes.FACET_FILL_GLOFFSET
 
         # Note: _WF selection modes are not reasonable for everything bigger than triangles, because the wireframe
         # is applied by ogl shader and all geometries are drawn as triangles
