@@ -508,15 +508,9 @@ class BasicPainter(Painter):
 
     @Slot()
     def onVisibleGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
-        for g in selected:
-            if not self.selection_info_exist(g.guid):
-                self.add_dummy_selection_info(g)
         self.resetmodel()
         self._geo2Add.extend(visible)
         self.requestGLUpdate()
-
-
-
 
     def rebuildGeometry(self, geometry: Geometry):
         self._geo2Rebuild.append(geometry)
