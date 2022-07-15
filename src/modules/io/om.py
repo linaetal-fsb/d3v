@@ -2,6 +2,7 @@ from iohandlers import IOHandler, ImportError
 
 from core import Geometry
 import openmesh as om
+import logging
 
 class OpenMeshImporter(IOHandler):
     def __init__(self):
@@ -11,6 +12,7 @@ class OpenMeshImporter(IOHandler):
         g = Geometry(name = file_name)
         m = om.read_trimesh(file_name)
         g.mesh = m
+        logging.debug("do_import_geometry: {}".format(g.guid))
         return g
 
     def getImportFormats(self):

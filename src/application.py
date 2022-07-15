@@ -6,6 +6,7 @@ import os
 import moduleImporter as importer
 from signals import Signals
 from core import geometry_manager
+import logging
 
 class App(QApplication):
     def __init__(self,argv):
@@ -14,8 +15,12 @@ class App(QApplication):
         self.setOrganizationName("testung")
         self.setApplicationName("d3v")
         Signals.get().importGeometry.connect(self.doImportGeometry)
+        geometry_manager.visible_geometry_changed.connect(self.request_update)
+        geometry_manager.selected_geometry_changed.connect(self.request_update)
 
-# hardcoded path
+        logging.basicConfig(level=logging.DEBUG)
+
+    # hardcoded path
 #        defModulesPaths = os.path.join(self.applicationDirPath(), 'modules')
         defModulesPaths = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modules')
         self.modulesPaths = []
@@ -196,3 +201,8 @@ class App(QApplication):
     @mainFrame.setter
     def mainFrame(self, mainFrame):
         self._mainFrame = mainFrame
+
+
+    def request_update(self, visible, loaded, selected):
+        self.mainFrame.update()
+

@@ -1,6 +1,8 @@
-from PySide6.QtCore import QObject, Signal, Slot
-from PySide6.QtGui import QStandardItemModel, QStandardItem
-#from .gtree_item import  GTreeItem
+import math
+
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QApplication
+import logging
 
 class __geometry_manager(QObject):
 
@@ -20,6 +22,11 @@ class __geometry_manager(QObject):
 
     def __init__(self):
         super().__init__()
+        self.visible_geometry_changed.connect(self.request_update)
+        self.selected_geometry_changed.connect(self.request_update)
+
+    def request_update(self, visible, loaded, selected):
+        QApplication.instance().mainFrame.update()
 
     def add_geometry(self, geometry_2_add):
         self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
@@ -52,7 +59,10 @@ class __geometry_manager(QObject):
         if exclusive_selection:
             self.__selected_geometry.clear()
         selected = geometry_2_select or (selection_info.geometry,)
-        print("{}".format(selected[0].guid))
+        if selection_info and math.isinf(selection_info.distance):
+            selected = tuple()
+        if selected:
+            logging.debug("select_geometry: {}".format(selected[0].guid))
         g2s = set(selected)
         self.__selected_geometry |= g2s
         self.selected_geometry_changed.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
