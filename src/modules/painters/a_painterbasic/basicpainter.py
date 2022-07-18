@@ -102,6 +102,7 @@ class BasicPainter(Painter):
             self.polygonWFColor = QVector4D(1.0, 0.0, 0.0, 1.0)
 
         self._s_selected_geo_guids:set = set()
+        self._s_visible_geo_guids: set = set()
         self._last_processed_si = SelectionInfo()
         self._last_obtained_si = SelectionInfo()
 
@@ -202,11 +203,13 @@ class BasicPainter(Painter):
         # self.glf.glDisable(GL.GL_CULL_FACE)
 
         for key, value in self._dentsvertsdata.items():
-            if (self.is_selected_geo(key)) and (self.selType == SelModes.FULL_FILL_SHADER):
+            is_visible = self.is_visible_geo(key)
+            is_selected_visible = is_visible and (self.is_selected_geo(key))
+            if  is_selected_visible and (self.selType == SelModes.FULL_FILL_SHADER):
                 self.selectionProgram.bind()
                 value.drawvao(self.glf)
                 self.selectionProgram.release()
-            elif (self.is_selected_geo(key)) and (self.selType == SelModes.FULL_WF):
+            elif is_selected_visible and (self.selType == SelModes.FULL_WF):
                 GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
                 self.wireframeProgram.bind()
                 self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
@@ -235,17 +238,17 @@ class BasicPainter(Painter):
                 self.wireframeProgram.release()
                 GL.glDisable(GL.GL_POLYGON_OFFSET_FILL)
 
-            elif type(key) == str:
-                if "_wf" in key:
-                    self.wireframeProgram.bind()
-                    self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.polygonWFColor)
+            if is_visible:
+                if type(key) == str:
+                    if "_wf" in key:
+                        self.wireframeProgram.bind()
+                        self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.polygonWFColor)
+                        value.drawvao(self.glf)
+                        self.wireframeProgram.release()
+                else:
+                    self.program.bind()
                     value.drawvao(self.glf)
-                    self.wireframeProgram.release()
-
-            else:
-                self.program.bind()
-                value.drawvao(self.glf)
-                self.program.release()
+                    self.program.release()
 
     def resizeGL(self, w: int, h: int):
         super().resizeGL(w, h)
@@ -477,6 +480,9 @@ class BasicPainter(Painter):
     def is_selected_geo(self,guid):
         return guid in self._s_selected_geo_guids
 
+    def is_visible_geo(self,guid):
+        return guid in self._s_visible_geo_guids
+
     @Slot()
     def onSelectedInfoChanged(self, si: SelectionInfo):
         self._last_obtained_si = si
@@ -508,9 +514,11 @@ class BasicPainter(Painter):
 
     @Slot()
     def onVisibleGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
-        self.resetmodel()
-        self._geo2Add.extend(visible)
-        self.requestGLUpdate()
+        self._s_visible_geo_guids.clear()
+        for g in visible:
+            self._s_visible_geo_guids.add(g.guid)
+            if self.showModelWireframe:
+                self._s_visible_geo_guids.add(str(g.guid) + "_wf")
 
     def rebuildGeometry(self, geometry: Geometry):
         self._geo2Rebuild.append(geometry)
@@ -546,7 +554,7 @@ class BasicPainter(Painter):
 
         else:
             print("Not handled mesh type")
-
+        self._s_visible_geo_guids.add(key)
         self.bindData(key)
 
         if self.showModelWireframe:
@@ -564,7 +572,7 @@ class BasicPainter(Painter):
             self.allocatememory(key)
 
             self.addWFdata4oglmdl(key, geometry)
-
+            self._s_visible_geo_guids.add(key)
             self.bindData(key)
 
 
@@ -575,9 +583,11 @@ class BasicPainter(Painter):
     def delayedRemoveGeometry(self, geometry: Geometry):
         key = geometry.guid
         self.removeDictItem(key)
+        self._s_visible_geo_guids.remove(key)
         if self.showModelWireframe:
             key = str(key) + "_wf"
             self.removeDictItem(key)
+            self._s_visible_geo_guids.remove(key)
 
     def addFacetListSelectionDataToOGL(self):
         key = FACET_LIST_SEL_GUID
