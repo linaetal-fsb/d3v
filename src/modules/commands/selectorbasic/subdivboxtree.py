@@ -22,8 +22,9 @@ class SubDivBoxTree(Box3DIntersection):
 
         super().__init__()
         self.mesh = mesh
-        self.facets = []
+        self.facets:np.ndarray = np.array([])
         self.nodes = []
+        #self._maxfacets = mesh.n_faces()
         self._maxfacets = 1000
         # self._maxfacets = 2
         self.name = ""
@@ -89,13 +90,23 @@ class SubDivBoxTree(Box3DIntersection):
         if type(self.mesh) == om.TriMesh:
             fv_indices = fv_indices[self.facets]
             face_vertices = points[fv_indices]
-            faceCGs = face_vertices.sum(axis=1) / 3
+            isIn_sbox1 = np.full(face_vertices.shape[0], False)
+            isIn_sbox2 = np.full(face_vertices.shape[0], False)
+            for i in range(3):
+                isIn_sbox1 = np.logical_or(isIn_sbox1,sbox1.isIn_array(face_vertices[:,i,:]))
+                isIn_sbox2 = np.logical_or(isIn_sbox2, sbox2.isIn_array(face_vertices[:, i, :]))
+            facets_sbox1 = self.facets[isIn_sbox1]
+            facets_sbox2 = self.facets[isIn_sbox2]
+            sbox1.setFacets(facets_sbox1)
+            sbox2.setFacets(facets_sbox2)
         else:
             fv_indices = fv_indices[self.facets]
             faceCGs = np.zeros((len(fv_indices), 3))
             n_corners_max = len(fv_indices[0])
             corners_iter = range(2, n_corners_max)
             polygons_done = np.zeros(len(fv_indices), dtype=np.bool)
+            facets_sbox1 = []
+            facets_sbox2 = []
             for corner_idx in corners_iter[::-1]:
                 are_polygons = fv_indices[:, corner_idx] != -1
                 mask = are_polygons & ~polygons_done
@@ -108,11 +119,13 @@ class SubDivBoxTree(Box3DIntersection):
                 iter_faceCGs = iter_face_vertices.sum(axis=1) / (corner_idx + 1)
                 faceCGs[mask] = iter_faceCGs
 
-        isIn_sbox1 = sbox1.isIn_array(faceCGs)
-        facets_sbox1 = self.facets[isIn_sbox1]
-        facets_sbox2 = self.facets[~isIn_sbox1]
-        sbox1.setFacets(facets_sbox1)
-        sbox2.setFacets(facets_sbox2)
+                isIn_sbox1 = np.full(mask.shape[0], False)
+                isIn_sbox2 = np.full(mask.shape[0], False)
+                for i in range(3):
+                    isIn_sbox1 = np.logical_or(isIn_sbox1, sbox1.isIn_array(iter_face_vertices[:, i, :]))
+                    isIn_sbox2 = np.logical_or(isIn_sbox2, sbox2.isIn_array(iter_face_vertices[:, i, :]))
+                sbox1.addFacets(self.facets[isIn_sbox1])
+                sbox2.addFacets(self.facets[isIn_sbox2])
 
         # Clear the parent bounding box
         self.clearFacets()
@@ -142,8 +155,8 @@ class SubDivBoxTree(Box3DIntersection):
         cb.setMaxCoord(self.maxCoord.copy())
         return cb
 
-    def addFacet(self, fh):
-        self.facets.append(fh)
+    def addFacets(self, fhs):
+        self.facets = np.append(self.facets,fhs)
 
     def setFacets(self, ifhs):
         self.facets = ifhs
