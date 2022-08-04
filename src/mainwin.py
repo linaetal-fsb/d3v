@@ -1,6 +1,6 @@
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
-from PySide6.QtWidgets import QMainWindow, QMenu
+from PySide6.QtWidgets import QMainWindow, QMenu, QStatusBar, QLabel, QProgressBar, QSpacerItem
 import os
 
 from glwin import GlWin
@@ -28,6 +28,16 @@ class MainFrame(QMainWindow):
         e.addAction("Prefs")
 
         self._menuTools = mb.addMenu("Tools")
+        sbar = QStatusBar()
+        self._coords = QLabel("x:0 y:0 z:0 ")
+
+        self._progress = QProgressBar()
+#        self._progress.setMaximum(100)
+#        self._progress.setValue(35)
+        sbar.addWidget(self._progress)
+        sbar.addWidget(self._coords)
+        self.setStatusBar(sbar)
+
 
     @property
     def menuTools(self):
