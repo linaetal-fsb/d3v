@@ -26,7 +26,7 @@ class __geometry_manager(QObject):
         self.selected_geometry_changed.connect(self.request_update)
 
     def request_update(self, visible, loaded, selected):
-        QApplication.instance().mainFrame.update()
+        QApplication.instance().mainFrame.glWin.update()
 
     def add_geometry(self, geometry_2_add):
         self.geometry_state_changing.emit(self.visible_geometry, self.loaded_geometry, self.selected_geometry)
