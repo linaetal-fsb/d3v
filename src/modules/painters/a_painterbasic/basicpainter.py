@@ -95,18 +95,41 @@ class BasicPainter(Painter):
         self.polyOffsetUnits = 1.0
 
         self.selectionColor = QVector4D(1.0, 0.0, 1.0, 1.0)
-
-        self.showModelWireframe = False
-        if self.showModelWireframe:
+        self._use_wf_outline = False
+        self._wf_outline_treshold_angle = 30 #deg
+        self._show_wf = False
+        if self._show_wf:
             self.line_indices = []
-            self.polygonWFColor = QVector4D(1.0, 0.0, 0.0, 1.0)
+            self.polygonWFColor = QVector4D(0.0, 0.0, 0.0, 1.0)
 
         self._s_selected_geo_guids:set = set()
         self._s_visible_geo_guids: set = set()
         self._last_processed_si = SelectionInfo()
         self._last_obtained_si = SelectionInfo()
 
+    @property
+    def show_wireframe(self):
+        return self._show_wf
 
+    @show_wireframe.setter
+    def show_wireframe(self, value):
+        self._show_wf = bool(value)
+
+    @property
+    def use_wf_outline(self):
+        return self._use_wf_outline
+
+    @use_wf_outline.setter
+    def use_wf_outline(self, value):
+        self._use_wf_outline = bool(value)
+
+    @property
+    def wf_outline_treshold_angle(self):
+        return self._wf_outline_treshold_angle
+
+    @wf_outline_treshold_angle.setter
+    def wf_outline_treshold_angle(self, value):
+        self._wf_outline_treshold_angle = float(value)
 
     @property
     def showBack(self):
@@ -159,7 +182,7 @@ class BasicPainter(Painter):
             self.selectionProgram.release()
 
         # Shader for wireframe
-        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self.showModelWireframe:
+        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self._show_wf:
             self.wireframeProgram = QOpenGLShaderProgram()
             self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexWireframeShader)
             self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentWireframeShader)
@@ -188,7 +211,7 @@ class BasicPainter(Painter):
             self.selectionProgram.setUniformValue(self.normalMatrixLoc_selection, normalMatrix)
             self.selectionProgram.release()
 
-        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self.showModelWireframe:
+        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self._show_wf:
             # GL.glLineWidth(3.0)
             self.wireframeProgram.bind()
             self.wireframeProgram.setUniformValue(self.projMatrixLoc_wireframe, proj)
@@ -517,7 +540,7 @@ class BasicPainter(Painter):
         self._s_visible_geo_guids.clear()
         for g in visible:
             self._s_visible_geo_guids.add(g.guid)
-            if self.showModelWireframe:
+            if self._show_wf:
                 self._s_visible_geo_guids.add(str(g.guid) + "_wf")
 
     def rebuildGeometry(self, geometry: Geometry):
@@ -554,25 +577,23 @@ class BasicPainter(Painter):
 
         else:
             print("Not handled mesh type")
-        self._s_visible_geo_guids.add(key)
         self.bindData(key)
 
-        if self.showModelWireframe:
+        if self._show_wf:
             self.addGeoCount = self.addGeoCount + 1
             key = str(key) + "_wf"
             self.initnewdictitem(key, GLEntityType.LINE)
-            fv_indices = geometry.mesh.fv_indices()
-            n_possible_lines = fv_indices.shape[0] * fv_indices.shape[1]
-            mask_not_lines = fv_indices == -1
-            not_lines = fv_indices[mask_not_lines]
-            n_not_lines = len(not_lines)
-            n_lines = n_possible_lines - n_not_lines
-
-            self.appenddictitemsize(key, n_lines*2)
+            if self._use_wf_outline:
+                n_vertices, vertices = \
+                    self.get_mesh_outlines(geometry.mesh, self._wf_outline_treshold_angle, True)
+            else:
+                n_vertices, vertices = self.get_mesh_edges(geometry.mesh)
+            n_lines = int(n_vertices / 2)
+            self.appenddictitemsize(key, n_lines)
             self.allocatememory(key)
 
-            self.addWFdata4oglmdl(key, geometry)
-            self._s_visible_geo_guids.add(key)
+            self.addWFdata4oglmdl(key, n_vertices, vertices)
+
             self.bindData(key)
 
 
@@ -584,7 +605,7 @@ class BasicPainter(Painter):
         key = geometry.guid
         self.removeDictItem(key)
         self._s_visible_geo_guids.remove(key)
-        if self.showModelWireframe:
+        if self._show_wf:
             key = str(key) + "_wf"
             self.removeDictItem(key)
             self._s_visible_geo_guids.remove(key)
@@ -840,45 +861,19 @@ class BasicPainter(Painter):
         self.addArrays4oglmdl_poly(key, selected_fv_indices, points, selected_face_normals, cstype, c, None, None)
         return
 
-    def addWFdata4oglmdl(self, key, geometry):
-        """
-        Converts the mesh data of a geometry to the wireframe vertex data necessary for OpenGL.
-        :param key: key under which the geometry is saved
-        :param geometry: geometry holding the mesh which is to be converted
+    def addWFdata4oglmdl(self, key,n_vertices, vertices):
+        '''
+        Add wireframe data for OpenGL model
+        :param key: based on geometry guid
+        :param n_vertices: number of vertices
+        :param vertices: vertices (coordinates)
         :return:
-        """
-        mesh = geometry.mesh
-        fv_indices = mesh.fv_indices()
-        points = mesh.points()
-
-        n_corners_max = len(fv_indices[0])
-
-        faces_drawn = np.zeros(len(fv_indices), dtype=np.bool)
-        corner_idx_array = range(2, n_corners_max)[::-1]
-        line_indices = []
-        for corner_idx in corner_idx_array:
-            existing = fv_indices[:, corner_idx] != -1
-
-            existing_fv_indices = fv_indices[existing & ~faces_drawn]
-            existing_fv_indices = existing_fv_indices[:, 0: corner_idx + 1]
-            faces_drawn = faces_drawn | existing
-
-            fv_indices_repeated = np.repeat(existing_fv_indices, 2, axis=1)
-            fv_indices_repeated[:, :-1] = fv_indices_repeated[:, 1:]
-            fv_indices_repeated[:, -1] = fv_indices_repeated[:, 0]
-            fv_indices_repeated = fv_indices_repeated.flatten()
-
-            line_indices = np.concatenate([line_indices, fv_indices_repeated])
-
-        line_indices = line_indices.astype(np.uint)
-        n_vertices = len(line_indices)
-        vertices = points[line_indices]
-        vertices = np.array(vertices, dtype=np.float32).flatten()
+        '''
         normals = np.array([])
         colors = np.array([])
-
-        self.setlistdata_f3xyzf3nf4rgba(key, vertices, normals, colors)
-        self.setVertexCounter_byNum(key, n_vertices)
+        if n_vertices > 0:
+            self.setlistdata_f3xyzf3nf4rgba(key, vertices, normals, colors)
+            self.setVertexCounter_byNum(key, n_vertices)
 
     def addMeshdata4oglmdl_poly(self, key, geometry):
         """
@@ -1003,4 +998,55 @@ class BasicPainter(Painter):
         self.setlistdata_f3xyzf3nf4rgba(key, vertex_data, normal_data, color_data)
         self.setVertexCounter_byNum(key, n_all_vertices)
         return
+    def get_mesh_outlines(self, mesh:om.TriMesh, max_angle=20,include_boundary=True):  # max angle(in deg) is the maximum angle between two faces for the edge between them to be counted as an outline,       include_boundary (bool) is wether boundary edges are considered outlines
+        mesh_points = mesh.points()
+        mesh.request_face_normals()
+        mesh.update_normals()
+        mesh_normals = mesh.face_normals()
+        mesh_evi = mesh.edge_vertex_indices()
+        mesh_efi = mesh.edge_face_indices()  # if mesh is not closed some efi will have -1 in them
+        mesh_boundary_ei = np.where((mesh_efi == -1).any(-1))[0]
+        mesh_closed_ei = np.delete(np.arange(mesh_efi.shape[0]), mesh_boundary_ei, axis=0)
+        mesh_closed_efi = mesh_efi[mesh_closed_ei]
+        mesh_closed_efn = mesh_normals[mesh_closed_efi]  # edge-face normals
+        v1 = mesh_closed_efn[:, 0, :]
+        v2 = mesh_closed_efn[:, 1, :]
+        cos = np.abs(np.sum(v1 * v2, axis=1) / (np.linalg.norm(v1, axis=1) * np.linalg.norm(v2, axis=1)))
+        is_outline_edge = cos <= np.cos(max_angle/57.3)
+        outline_ei = mesh_closed_ei[is_outline_edge]
+        if include_boundary == True:
+            outline_ei = np.append(outline_ei, mesh_boundary_ei)
+        outline_evi = mesh_evi[outline_ei]
+        outline_points = mesh_points[outline_evi]
+        vertices = np.array(outline_points, dtype=np.float32).flatten()
+        n_vertices=len(outline_evi)*2
+        return n_vertices,vertices
 
+    def get_mesh_edges(self,mesh):
+        fv_indices = mesh.fv_indices()
+        points = mesh.points()
+
+        n_corners_max = len(fv_indices[0])
+
+        faces_drawn = np.zeros(len(fv_indices), dtype=np.bool)
+        corner_idx_array = range(2, n_corners_max)[::-1]
+        line_indices = []
+        for corner_idx in corner_idx_array:
+            existing = fv_indices[:, corner_idx] != -1
+
+            existing_fv_indices = fv_indices[existing & ~faces_drawn]
+            existing_fv_indices = existing_fv_indices[:, 0: corner_idx + 1]
+            faces_drawn = faces_drawn | existing
+
+            fv_indices_repeated = np.repeat(existing_fv_indices, 2, axis=1)
+            fv_indices_repeated[:, :-1] = fv_indices_repeated[:, 1:]
+            fv_indices_repeated[:, -1] = fv_indices_repeated[:, 0]
+            fv_indices_repeated = fv_indices_repeated.flatten()
+
+            line_indices = np.concatenate([line_indices, fv_indices_repeated])
+
+        line_indices = line_indices.astype(np.uint)
+        n_vertices = len(line_indices)
+        vertices = points[line_indices]
+        vertices = np.array(vertices, dtype=np.float32).flatten()
+        return n_vertices,vertices
