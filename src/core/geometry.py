@@ -11,6 +11,7 @@ class Geometry(QObject):
     def __init__(self, name = '', guid=None):
         super().__init__()
         self._name = name
+        self._full_name = name
         self._guid = guid
         if not self._guid:
             self._guid = uuid.uuid4()
@@ -42,13 +43,24 @@ class Geometry(QObject):
     @property
     def name(self):
         return self._name
+    @name.setter
+    def name(self, new_name):
+        self._name = new_name
+
+    @property
+    def full_name(self):
+        return self._full_name
+    @full_name.setter
+    def full_name(self, new_name):
+        self._full_name = new_name
+
 
     @property
     def sub_geometry(self):
         return self._subgeometry
 
     @sub_geometry.setter
-    def sub_geometry(self, geometry: "Geometry"):
+    def sub_geometry(self, geometry):
         self._subgeometry = geometry
 
     def onSelected(self, si):
