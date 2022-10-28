@@ -31,8 +31,10 @@ class GeometryTree(QTreeWidget):
     @Slot()
     def on_geometry_created(self, new_geometry):
         for g in new_geometry:
-            self.counter += 1
-            root = GTreeItem(name = "Imported: " + str(self.counter), geometry=g)
+            # self.counter += 1
+            # root = GTreeItem(name = "Imported: " + str(self.counter), geometry=g)
+            root = GTreeItem(name = g.name, geometry=g)
+            root.setToolTip(0, g.full_name)
             self.addTopLevelItem(root)
             self.create_subtree(root, new_geometry)
 
