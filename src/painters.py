@@ -51,7 +51,7 @@ class Painter(Command, QObject):
     def requestGLUpdate(self):
         Signals.get().updateGL.connect(self.onUpdateGL)
         app = QApplication.instance()
-        app.mainFrame.update()
+        app.mainFrame.glWin.update()
 
 
 
