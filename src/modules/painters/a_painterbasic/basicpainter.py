@@ -18,7 +18,8 @@ import numpy as np
 from selinfo import SelectionInfo
 from PySide6.QtGui import QBrush, QPainter, QPen, QPolygon, QColor, QFont
 from PySide6.QtCore import QRect, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
+from PySide6.QtGui import QActionGroup,QAction
 import time
 from typing import List,Dict
 import uuid
@@ -38,6 +39,7 @@ class BasicPainter(Painter):
         """
         super().__init__()
         self._dentsvertsdata = {}  # dictionary that holds vertex data for all primitive and  submodel combinations
+        self._dgeos = {}  # dictionary that holds existing geometries
         self._geo2Add:List[Geometry] = []
         self._geo2Rebuild:List[Geometry] = []
         self._geo2Remove:List[Geometry] = []
@@ -53,19 +55,15 @@ class BasicPainter(Painter):
         self.fragmentShader = self.fragmentShaderSource()
         # model / geometry
         self.addGeoCount = 0
-#        Signals.get().selectionChanged.connect(self.onSelected)
-#        geometry_manager.selected_geometry_changed.connect(self.onSelected)
-        #geometry_manager.geometry_created.connect(self.addGeometry)
-#        geometry_manager.visible_geometry_changed.connect(self.onVisibleChanged)
 
         geometry_manager.geometry_created.connect(self.onGeometryCreated)
         geometry_manager.geometry_removed.connect(self.onGeometryRemoved)
         geometry_manager.geometry_state_changing.connect(self.onGeometryStateChanging)
         geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
         geometry_manager.selected_geometry_changed.connect(self.onSelectedGeometryChanged)
-        QApplication.instance().mainFrame.glWin.selector.selection_info_changled.connect(self.onSelectedInfoChanged)
 
-        self.paintDevice = 0
+
+        self.paintDevice = 0 # this will actually glWin during initializeGL
         self.selType = SelModes.FULL_FILL_SHADER
         #self.selType = SelModes.FACET_FILL_GLOFFSET
 
@@ -98,38 +96,50 @@ class BasicPainter(Painter):
         self._use_wf_outline = False
         self._wf_outline_treshold_angle = 30 #deg
         self._show_wf = False
-        if self._show_wf:
-            self.line_indices = []
-            self.polygonWFColor = QVector4D(0.0, 0.0, 0.0, 1.0)
+        self.line_indices = []
+        self.polygonWFColor = QVector4D(0.0, 0.0, 0.0, 1.0)
 
         self._s_selected_geo_guids:set = set()
         self._s_visible_geo_guids: set = set()
         self._last_processed_si = SelectionInfo()
         self._last_obtained_si = SelectionInfo()
+        # Add menu items
+        app = QApplication.instance()
+        mf = app.mainFrame
+        tools = app.mainFrame.menuTools
+        menu = QMenu("Basic Painter", app.mainFrame)
+        ag = QActionGroup(mf)
 
-    @property
-    def show_wireframe(self):
-        return self._show_wf
+        self.act_no_edges = ag.addAction(QAction('Without edges', mf, checkable=True))
+        self.act_no_edges.triggered.connect(self.onChangeShowEdges)
+        self.act_no_edges.setChecked(True)
+        menu.addAction(self.act_no_edges)
+        self.act_all_edges = ag.addAction(QAction('All edges', mf, checkable=True))
+        self.act_all_edges.triggered.connect(self.onChangeShowEdges)
+        #self.act_all_edges.setChecked(True)
+        menu.addAction(self.act_all_edges)
+        self.act_outline_edges = ag.addAction(QAction('Outline edges', mf, checkable=True))
+        self.act_outline_edges.triggered.connect(self.onChangeShowEdges)
+        menu.addAction(self.act_outline_edges)
+        self.onChangeShowEdges()
+        self._executeWireframeUpdate = False
 
-    @show_wireframe.setter
-    def show_wireframe(self, value):
-        self._show_wf = bool(value)
+        tools.addMenu(menu)
+        menu.addSeparator()
 
-    @property
-    def use_wf_outline(self):
-        return self._use_wf_outline
 
-    @use_wf_outline.setter
-    def use_wf_outline(self, value):
-        self._use_wf_outline = bool(value)
-
-    @property
-    def wf_outline_treshold_angle(self):
-        return self._wf_outline_treshold_angle
-
-    @wf_outline_treshold_angle.setter
-    def wf_outline_treshold_angle(self, value):
-        self._wf_outline_treshold_angle = float(value)
+    def onChangeShowEdges(self):
+        if self.act_outline_edges.isChecked():
+            self._show_wf=True
+            self._use_wf_outline = True
+        elif self.act_all_edges.isChecked():
+            self._show_wf=True
+            self._use_wf_outline = False
+        else:
+            self._show_wf = False
+            self._use_wf_outline = False
+        self._executeWireframeUpdate = True
+        self.requestGLUpdate()
 
     @property
     def showBack(self):
@@ -143,19 +153,12 @@ class BasicPainter(Painter):
             self._multFactor = 2
 
     def initializeGL(self):
-        paintDevice = QApplication.instance().mainFrame.glWin
-        self.width = paintDevice.vport.width()
-        self.height = paintDevice.vport.height()
+        self.paintDevice = QApplication.instance().mainFrame.glWin
+        self.paintDevice.selector.selection_info_changled.connect(self.onSelectedInfoChanged)
+        self.width = self.paintDevice.vport.width()
+        self.height = self.paintDevice.vport.height()
         super().initializeGL()
         self.program = QOpenGLShaderProgram()
-        # profile = QOpenGLVersionProfile()
-        # profile.setVersion(2, 0)
-        # context = QOpenGLContext.currentContext()
-        # print("paintr init "+str(context))
-        # self.glf = context.versionFunctions(profile)
-        # if not self.glf:
-        #     QMessageBox.critical(None, "Failed to Initialize OpenGL",
-        #                          "Could not initialize OpenGL. This program requires OpenGL x.x or higher. Please check your video card drivers.")
         self.glf.initializeOpenGLFunctions()
         self.glf.glClearColor(0.0, 0.0, 0.0, 1)
         self.program.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexShader)
@@ -182,18 +185,18 @@ class BasicPainter(Painter):
             self.selectionProgram.release()
 
         # Shader for wireframe
-        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self._show_wf:
-            self.wireframeProgram = QOpenGLShaderProgram()
-            self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexWireframeShader)
-            self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentWireframeShader)
-            self.wireframeProgram.link()
-            self.wireframeProgram.bind()
-            self.projMatrixLoc_wireframe = self.wireframeProgram.uniformLocation("projMatrix")
-            self.mvMatrixLoc_wireframe = self.wireframeProgram.uniformLocation("mvMatrix")
-            self.wfColor_wireframe = self.wireframeProgram.uniformLocation("wfColor")
-            self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
-            self.wireframeProgram.release()
-            GL.glLineWidth(self.lineWidth)
+        #if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self._show_wf:
+        self.wireframeProgram = QOpenGLShaderProgram()
+        self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexWireframeShader)
+        self.wireframeProgram.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentWireframeShader)
+        self.wireframeProgram.link()
+        self.wireframeProgram.bind()
+        self.projMatrixLoc_wireframe = self.wireframeProgram.uniformLocation("projMatrix")
+        self.mvMatrixLoc_wireframe = self.wireframeProgram.uniformLocation("mvMatrix")
+        self.wfColor_wireframe = self.wireframeProgram.uniformLocation("wfColor")
+        self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
+        self.wireframeProgram.release()
+        GL.glLineWidth(self.lineWidth)
 
     def setprogramvalues(self, proj, mv, normalMatrix, lightpos):
         self.program.bind()
@@ -203,6 +206,11 @@ class BasicPainter(Painter):
         self.program.setUniformValue(self.normalMatrixLoc, normalMatrix)
         self.program.release()
 
+        self.wireframeProgram.bind()
+        self.wireframeProgram.setUniformValue(self.projMatrixLoc_wireframe, proj)
+        self.wireframeProgram.setUniformValue(self.mvMatrixLoc_wireframe, mv)
+        self.wireframeProgram.release()
+
         if self.selType == SelModes.FULL_FILL_SHADER:
             self.selectionProgram.bind()
             self.selectionProgram.setUniformValue(self.lightPosLoc_selection, lightpos)
@@ -211,12 +219,8 @@ class BasicPainter(Painter):
             self.selectionProgram.setUniformValue(self.normalMatrixLoc_selection, normalMatrix)
             self.selectionProgram.release()
 
-        if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self._show_wf:
-            # GL.glLineWidth(3.0)
-            self.wireframeProgram.bind()
-            self.wireframeProgram.setUniformValue(self.projMatrixLoc_wireframe, proj)
-            self.wireframeProgram.setUniformValue(self.mvMatrixLoc_wireframe, mv)
-            self.wireframeProgram.release()
+
+
 
     def paintGL(self):
         super().paintGL()
@@ -277,8 +281,16 @@ class BasicPainter(Painter):
         super().resizeGL(w, h)
 
     def updateGL(self):
+        '''
+        This function is called when the correct GL context is active
+        All changes of OpengGL VAO-s have to be called from this method
+        :return:
+        '''
         super().updateGL()
         self.updateGeometry()
+        if self._executeWireframeUpdate:
+            self.delayedRebuildVisibleGeometryWireframe()
+            self._executeWireframeUpdate = False
 
     def resetmodel(self):
         """!
@@ -298,7 +310,14 @@ class BasicPainter(Painter):
         """
         if key in self._dentsvertsdata:
             self._dentsvertsdata[key].free()
-            self._dentsvertsdata.pop(key, None)
+            del self._dentsvertsdata[key]
+
+    def removeGeometryItem(self, key):
+        if key in self._dgeos:
+            del self._dgeos[key]
+
+    def addGeometryItem(self, geometry:Geometry):
+        self._dgeos[geometry.guid] = geometry
 
     def initnewdictitem(self, key, enttype):
         """!
@@ -384,6 +403,12 @@ class BasicPainter(Painter):
         atrList = self._dentsvertsdata[key].GetAtrList()
         for ent in atrList:
             self.program.bindAttributeLocation(ent[0], ent[1])
+
+    def bindWireframeData(self, key):
+        self._dentsvertsdata[key].setupVertexAttribs(self.glf)
+        atrList = self._dentsvertsdata[key].GetAtrList()
+        for ent in atrList:
+            self.wireframeProgram.bindAttributeLocation(ent[0], ent[1])
 
     # Shader code ********************************************************
     def vertexShaderSourceCore(self):
@@ -554,6 +579,7 @@ class BasicPainter(Painter):
         key = geometry.guid
         # self.resetmodel()
         self.initnewdictitem(key, GLEntityType.TRIA)
+        self.addGeometryItem(geometry)
 
         if type(geometry.mesh) == om.TriMesh:
             print("TriMesh")
@@ -579,36 +605,60 @@ class BasicPainter(Painter):
             print("Not handled mesh type")
         self.bindData(key)
 
+        self.delayedAddGeometryWireframeEntities(geometry)
+
+    def delayedAddGeometryWireframeEntities(self, geometry: Geometry):
+        if not self._show_wf:
+            return
+        self.addGeoCount = self.addGeoCount + 1
+        key = str(geometry.guid) + "_wf"
+        self.initnewdictitem(key, GLEntityType.LINE)
+        if self._use_wf_outline:
+            n_vertices, vertices = \
+                self.get_mesh_outlines(geometry.mesh, self._wf_outline_treshold_angle, True)
+        else:
+            n_vertices, vertices = self.get_mesh_edges(geometry.mesh)
+        n_lines = int(n_vertices / 2)
+        self.appenddictitemsize(key, n_lines)
+        self.allocatememory(key)
+        self.addWFdata4oglmdl(key, n_vertices, vertices)
+        self.bindWireframeData(key)
+
+    def is_wf_key(self,key):
+        if type(key) == str:
+            return "_wf" in key
+        return False
+
+    def delayedRebuildVisibleGeometryWireframe(self):
+        # remove all existing wireframes
+        keys = list(self._dentsvertsdata.keys())
+        for key in keys:
+            if self.is_wf_key(key):
+                self.processRemoveGeometry(key)
+        # generate wireframe of all loaded geometries
         if self._show_wf:
-            self.addGeoCount = self.addGeoCount + 1
-            key = str(key) + "_wf"
-            self.initnewdictitem(key, GLEntityType.LINE)
-            if self._use_wf_outline:
-                n_vertices, vertices = \
-                    self.get_mesh_outlines(geometry.mesh, self._wf_outline_treshold_angle, True)
-            else:
-                n_vertices, vertices = self.get_mesh_edges(geometry.mesh)
-            n_lines = int(n_vertices / 2)
-            self.appenddictitemsize(key, n_lines)
-            self.allocatememory(key)
-
-            self.addWFdata4oglmdl(key, n_vertices, vertices)
-
-            self.bindData(key)
-
+            for key,geometry in self._dgeos.items():
+                self.delayedAddGeometryWireframeEntities(geometry)
+            # set visibility based on visible geometries
+            for key,geometry in self._dgeos.items():
+                self._s_visible_geo_guids.add(str(key) + "_wf")
+            pass
 
     def delayedRebuildGeometry(self, geometry: Geometry):
         self.delayedRemoveGeometry(geometry)
         self.delayedAddGeometry(geometry)
 
-    def delayedRemoveGeometry(self, geometry: Geometry):
-        key = geometry.guid
+    def processRemoveGeometry(self,key):
         self.removeDictItem(key)
         self._s_visible_geo_guids.remove(key)
+        self.removeGeometryItem(key)
+
+    def delayedRemoveGeometry(self, geometry: Geometry):
+        key = geometry.guid
+        self.processRemoveGeometry(key)
         if self._show_wf:
             key = str(key) + "_wf"
-            self.removeDictItem(key)
-            self._s_visible_geo_guids.remove(key)
+            self.processRemoveGeometry(key)
 
     def addFacetListSelectionDataToOGL(self):
         key = FACET_LIST_SEL_GUID
