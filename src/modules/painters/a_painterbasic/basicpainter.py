@@ -1,6 +1,6 @@
 from enum import Enum
 from PySide6.QtCore import Slot
-from PySide6.QtGui import QVector4D
+from PySide6.QtGui import QVector4D,QVector3D
 from PySide6.QtOpenGL import QOpenGLShaderProgram, QOpenGLShader
 from PySide6.QtOpenGL import QOpenGLVersionProfile
 from PySide6.QtGui import QSurfaceFormat, QOpenGLContext
@@ -49,10 +49,8 @@ class BasicPainter(Painter):
         self.mvMatrixLoc = 0
         self.normalMatrixLoc = 0
         self.lightPosLoc = 0
-        # self.vertexShader = self.vertexShaderSourceCore()
-        # self.fragmentShader = self.fragmentShaderSourceCore()
-        self.vertexShader = self.vertexShaderSource()
-        self.fragmentShader = self.fragmentShaderSource()
+        self.vertexShader = self._vertex_shader_source()
+        self.fragmentShader = self._fragment_shader_source()
         # model / geometry
         self.addGeoCount = 0
 
@@ -74,16 +72,16 @@ class BasicPainter(Painter):
         self.showBack = True
 
         self.selectionProgram = 0
-        self.vertexSelectionShader = self.vertexSelectionShaderSource()
-        self.fragmentSelectionShader = self.fragmentSelectionShaderSource()
+        self.vertexSelectionShader = self._vertex_shader_selection_source()
+        self.fragmentSelectionShader = self._fragment_shader_selection_source()
         self.projMatrixLoc_selection = 0
         self.mvMatrixLoc_selection = 0
         self.normalMatrixLoc_selection = 0
         self.lightPosLoc_selection = 0
 
         self.wireframeProgram = 0
-        self.vertexWireframeShader = self.vertexWireframeShaderSource()
-        self.fragmentWireframeShader = self.fragmentWireframeShaderSource()
+        self.vertexWireframeShader = self._vertex_shader_wf_source()
+        self.fragmentWireframeShader = self._fragment_shader_wf_source()
         self.projMatrixLoc_wireframe = 0
         self.mvMatrixLoc_wireframe = 0
         self.wfColor_wireframe = 0
@@ -96,7 +94,6 @@ class BasicPainter(Painter):
         self._use_wf_outline = False
         self._wf_outline_treshold_angle = 30 #deg
         self._show_wf = False
-        self.line_indices = []
         self.polygonWFColor = QVector4D(0.0, 0.0, 0.0, 1.0)
 
         self._s_selected_geo_guids:set = set()
@@ -123,9 +120,9 @@ class BasicPainter(Painter):
         menu.addAction(self.act_outline_edges)
         self.onChangeShowEdges()
         self._executeWireframeUpdate = False
-
         tools.addMenu(menu)
         menu.addSeparator()
+        self._light_position = QVector3D(0, 0, 10000) #inifinity
 
 
     def onChangeShowEdges(self):
@@ -154,10 +151,18 @@ class BasicPainter(Painter):
 
     def initializeGL(self):
         self.paintDevice = QApplication.instance().mainFrame.glWin
+        # next line is specific to glwin - consider reviosion
         self.paintDevice.selector.selection_info_changled.connect(self.onSelectedInfoChanged)
         self.width = self.paintDevice.vport.width()
         self.height = self.paintDevice.vport.height()
         super().initializeGL()
+        self.initializeShaderProgram()
+        self.initializeShaderProgramWf()
+        self.initializeShaderProgramSelection()
+
+
+
+    def initializeShaderProgram(self):
         self.program = QOpenGLShaderProgram()
         self.glf.initializeOpenGLFunctions()
         self.glf.glClearColor(0.0, 0.0, 0.0, 1)
@@ -171,19 +176,7 @@ class BasicPainter(Painter):
         self.lightPosLoc = self.program.uniformLocation("lightPos")
         self.program.release()
 
-        # Shader for selection
-        if self.selType == SelModes.FULL_FILL_SHADER:
-            self.selectionProgram = QOpenGLShaderProgram()
-            self.selectionProgram.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexSelectionShader)
-            self.selectionProgram.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentSelectionShader)
-            self.selectionProgram.link()
-            self.selectionProgram.bind()
-            self.projMatrixLoc_selection = self.selectionProgram.uniformLocation("projMatrix")
-            self.mvMatrixLoc_selection = self.selectionProgram.uniformLocation("mvMatrix")
-            self.normalMatrixLoc_selection = self.selectionProgram.uniformLocation("normalMatrix")
-            self.lightPosLoc_selection = self.selectionProgram.uniformLocation("lightPos")
-            self.selectionProgram.release()
-
+    def initializeShaderProgramWf(self):
         # Shader for wireframe
         #if (self.selType in [SelModes.FACET_WF, SelModes.FULL_WF, SelModes.FACET_FILL_GLOFFSET]) or self._show_wf:
         self.wireframeProgram = QOpenGLShaderProgram()
@@ -198,31 +191,57 @@ class BasicPainter(Painter):
         self.wireframeProgram.release()
         GL.glLineWidth(self.lineWidth)
 
+    def initializeShaderProgramSelection(self):
+        # Shader for full fil selection
+        self.selectionProgram = QOpenGLShaderProgram()
+        self.selectionProgram.addShaderFromSourceCode(QOpenGLShader.Vertex, self.vertexSelectionShader)
+        self.selectionProgram.addShaderFromSourceCode(QOpenGLShader.Fragment, self.fragmentSelectionShader)
+        self.selectionProgram.link()
+        self.selectionProgram.bind()
+        self.projMatrixLoc_selection = self.selectionProgram.uniformLocation("projMatrix")
+        self.mvMatrixLoc_selection = self.selectionProgram.uniformLocation("mvMatrix")
+        self.normalMatrixLoc_selection = self.selectionProgram.uniformLocation("normalMatrix")
+        self.lightPosLoc_selection = self.selectionProgram.uniformLocation("lightPos")
+        self.selectionProgram.release()
+
     def setprogramvalues(self, proj, mv, normalMatrix, lightpos):
+        pass
+
+
+    def set_shader_program_values(self):
+        proj = self.paintDevice.proj
+        mv = self.paintDevice.mv
+        normalMatrix = mv.normalMatrix()
         self.program.bind()
-        self.program.setUniformValue(self.lightPosLoc, lightpos)
+        self.program.setUniformValue(self.lightPosLoc, self._light_position)
         self.program.setUniformValue(self.projMatrixLoc, proj)
         self.program.setUniformValue(self.mvMatrixLoc, mv)
         self.program.setUniformValue(self.normalMatrixLoc, normalMatrix)
         self.program.release()
 
+    def set_shader_wf_program_values(self):
+        proj = self.paintDevice.proj
+        mv = self.paintDevice.mv
         self.wireframeProgram.bind()
         self.wireframeProgram.setUniformValue(self.projMatrixLoc_wireframe, proj)
         self.wireframeProgram.setUniformValue(self.mvMatrixLoc_wireframe, mv)
         self.wireframeProgram.release()
 
-        if self.selType == SelModes.FULL_FILL_SHADER:
-            self.selectionProgram.bind()
-            self.selectionProgram.setUniformValue(self.lightPosLoc_selection, lightpos)
-            self.selectionProgram.setUniformValue(self.projMatrixLoc_selection, proj)
-            self.selectionProgram.setUniformValue(self.mvMatrixLoc_selection, mv)
-            self.selectionProgram.setUniformValue(self.normalMatrixLoc_selection, normalMatrix)
-            self.selectionProgram.release()
-
-
-
+    def set_shader_selection_program_values(self):
+        proj = self.paintDevice.proj
+        mv = self.paintDevice.mv
+        normalMatrix = mv.normalMatrix()
+        self.selectionProgram.bind()
+        self.selectionProgram.setUniformValue(self.lightPosLoc_selection, self._light_position)
+        self.selectionProgram.setUniformValue(self.projMatrixLoc_selection, proj)
+        self.selectionProgram.setUniformValue(self.mvMatrixLoc_selection, mv)
+        self.selectionProgram.setUniformValue(self.normalMatrixLoc_selection, normalMatrix)
+        self.selectionProgram.release()
 
     def paintGL(self):
+        self.set_shader_program_values()
+        self.set_shader_selection_program_values()
+        self.set_shader_wf_program_values()
         super().paintGL()
         self.glf.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         self.glf.glEnable(GL.GL_DEPTH_TEST)
@@ -233,6 +252,7 @@ class BasicPainter(Painter):
             is_visible = self.is_visible_geo(key)
             is_selected_visible = is_visible and (self.is_selected_geo(key))
             if  is_selected_visible and (self.selType == SelModes.FULL_FILL_SHADER):
+                GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
                 self.selectionProgram.bind()
                 value.drawvao(self.glf)
                 self.selectionProgram.release()
@@ -242,7 +262,6 @@ class BasicPainter(Painter):
                 self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
                 value.drawvao(self.glf)
                 self.wireframeProgram.release()
-                GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
                 self.program.bind()
                 value.drawvao(self.glf)
                 self.program.release()
@@ -252,9 +271,9 @@ class BasicPainter(Painter):
                 self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
                 value.drawvao(self.glf)
                 self.wireframeProgram.release()
-                GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
             elif (key == FACET_LIST_SEL_GUID) and (self.selType == SelModes.FACET_FILL_GLOFFSET):
+                GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
                 GL.glEnable(GL.GL_POLYGON_OFFSET_FILL)
                 self.wireframeProgram.bind()
                 self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.selectionColor)
@@ -268,11 +287,13 @@ class BasicPainter(Painter):
             if is_visible:
                 if type(key) == str:
                     if "_wf" in key:
+                        GL.glPolygonMode(GL.GL_FRONT_AND_BACK,GL.GL_LINE)
                         self.wireframeProgram.bind()
                         self.wireframeProgram.setUniformValue(self.wfColor_wireframe, self.polygonWFColor)
                         value.drawvao(self.glf)
                         self.wireframeProgram.release()
                 else:
+                    GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
                     self.program.bind()
                     value.drawvao(self.glf)
                     self.program.release()
@@ -411,38 +432,7 @@ class BasicPainter(Painter):
             self.wireframeProgram.bindAttributeLocation(ent[0], ent[1])
 
     # Shader code ********************************************************
-    def vertexShaderSourceCore(self):
-        return """#version 150
-                in vec4 vertex;
-                in vec3 normal;
-                out vec3 vert;
-                out vec3 vertNormal;
-                out vec4 colorV;
-                uniform mat4 projMatrix;
-                uniform mat4 mvMatrix;
-                uniform mat3 normalMatrix;
-                void main() {
-                   vert = vertex.xyz;
-                   vertNormal = normalMatrix * normal;
-                   gl_Position = projMatrix * mvMatrix * vertex;
-                   colorV = color;
-                }"""
-
-    def fragmentShaderSourceCore(self):
-        return """#version 150
-                in highp vec3 vert;
-                in highp vec3 vertNormal;
-                in highp vec4 colorV; 
-                out highp vec4 fragColor;
-                uniform highp vec3 lightPos;
-                void main() {
-                   highp vec3 L = normalize(lightPos - vert);
-                   highp float NL = max(dot(normalize(vertNormal), L), 0.0);
-                   highp vec3 col = clamp(colorV.rgb * 0.8 + colorV.rgb * 0.2 * NL, 0.0, 1.0);
-                   fragColor = vec4(col, colorV.a);
-                }"""
-
-    def vertexShaderSource(self):
+    def _vertex_shader_source(self):
         return """attribute vec4 vertex;
                 attribute vec3 normal;
                 attribute vec4 color;
@@ -459,7 +449,7 @@ class BasicPainter(Painter):
                    colorV = color;
                 }"""
 
-    def fragmentShaderSource(self):
+    def _fragment_shader_source(self):
         return """varying highp vec3 vert;
                 varying highp vec3 vertNormal;
                 varying highp vec4 colorV; 
@@ -471,7 +461,7 @@ class BasicPainter(Painter):
                    gl_FragColor = vec4(col, colorV.a);
                 }"""
 
-    def vertexSelectionShaderSource(self):
+    def _vertex_shader_selection_source(self):
         return """attribute vec4 vertex;
                 attribute vec3 normal;
                 attribute vec4 color;
@@ -488,7 +478,7 @@ class BasicPainter(Painter):
                    colorV = color;
                 }"""
 
-    def fragmentSelectionShaderSource(self):
+    def _fragment_shader_selection_source(self):
         return """varying highp vec3 vert;
                         varying highp vec3 vertNormal;
                         // varying highp vec4 colorV; 
@@ -501,7 +491,7 @@ class BasicPainter(Painter):
                            gl_FragColor = vec4(col, selectionColor.w);
                         }"""
 
-    def vertexWireframeShaderSource(self):
+    def _vertex_shader_wf_source(self):
         return """attribute vec4 vertex;
                 uniform mat4 projMatrix;
                 uniform mat4 mvMatrix;
@@ -511,7 +501,7 @@ class BasicPainter(Painter):
                    // colorV = color;
                 }"""
 
-    def fragmentWireframeShaderSource(self):
+    def _fragment_shader_wf_source(self):
         return """
                 uniform vec4 wfColor;
                 void main() {
