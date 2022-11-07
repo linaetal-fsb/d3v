@@ -6,7 +6,7 @@ More detailssssssssss
 """
 import numpy as np
 
-from a_painterbasic.glhelp import GLEntityType, GLDataType, GLHelpFun
+from dir_basic_painter.glhelp import GLEntityType, GLDataType, GLHelpFun
 
 
 class VertDataCollector():
