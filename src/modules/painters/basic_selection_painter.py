@@ -43,9 +43,32 @@ class BasicSelectionPainter(BasicPainterGeometryBase):
         geometry_manager.selected_geometry_changed.connect(self.onSelectedGeometryChanged)
         self._s_selected_geo_guids:set = set()
 
+        app = QApplication.instance()
+        mf = app.mainFrame
+        ag = QActionGroup(mf)
+        self._menu.addSeparator()
+        self.act_sel_mode_full_geo = ag.addAction(QAction('Geometry select', mf, checkable=True))
+        self.act_sel_mode_full_geo.triggered.connect(self.onChangeSelectionMode)
+        self.act_sel_mode_full_geo.setChecked(True)
+        self._menu.addAction(self.act_sel_mode_full_geo)
+        self.act_sel_mode_facet = ag.addAction(QAction('Facet select', mf, checkable=True))
+        self.act_sel_mode_facet.triggered.connect(self.onChangeSelectionMode)
+        self._menu.addAction(self.act_sel_mode_facet)
+        self.onChangeSelectionMode()
+
     @property
     def name(self):
         return "Selection Painter"
+    def onChangeSelectionMode(self):
+        if self.act_sel_mode_full_geo.isChecked():
+            self.selType = SelModes.FULL_FILL
+        elif self.act_sel_mode_facet.isChecked():
+            self.selType = SelModes.FACET_FILL
+        if self.do_process_data:
+            # remove all old reperesentation of geometry
+            self._geoKey2Remove = list(self._dentsvertsdata.keys())
+            self.on_change_do_process_data()
+            self.requestGLUpdate()
 
     def initializeShaderProgram(self):
         self.program = QOpenGLShaderProgram()

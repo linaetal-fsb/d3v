@@ -1,6 +1,6 @@
 from enum import Enum
 from PySide6.QtCore import Slot
-from PySide6.QtGui import QVector4D,QVector3D
+from PySide6.QtGui import QVector4D,QVector3D,QColor
 from PySide6.QtOpenGL import QOpenGLShaderProgram, QOpenGLShader
 from painters import Painter
 from dir_basic_painter.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f, VertDataCollectorCoord3fColor4f
@@ -10,7 +10,7 @@ from core import Geometry, geometry_manager
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox,QColorDialog
 from PySide6.QtGui import QActionGroup,QAction
 import time
 from typing import List,Dict
@@ -27,11 +27,11 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
         self.act_do_paint.setChecked(False)
         self.showBack = False
 
-        self.lineWidth = 1.0
+        self._line_width = 1.0
         self._use_outline = False
         self._outline_treshold_angle = 30  # deg
         self._do_process_data = False
-        self.polygonWFColor = QVector4D(0.0, 0.0, 0.0, 1.0)
+        self._color = [0.0, 0.0, 0.0, 1.0]
 
         # Add menu items
         app = QApplication.instance()
@@ -48,6 +48,7 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
         self._menu.addAction(self.act_outline_edges)
         self.onChangeShowEdges()
         self._menu.addSeparator()
+        self._line_color=QVector4D(self._color[0], self._color[1], self._color[2], self._color[3])
 
 
 
@@ -55,6 +56,12 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
     @property
     def name(self):
         return "Edges Painter"
+
+    def on_action_set_color(self):
+        super(BasicEdgesPainter, self).on_action_set_color()
+        self._line_color = QVector4D(self._color[0], self._color[1], self._color[2], self._color[3])
+
+
 
     def onChangeShowEdges(self):
         if self.act_outline_edges.isChecked():
@@ -84,7 +91,7 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
         self.program.bind()
         self.projMatrixLoc = self.program.uniformLocation("projMatrix")
         self.mvMatrixLoc = self.program.uniformLocation("mvMatrix")
-        self.shader_edge_color = self.program.uniformLocation("edge_color")
+        self.shader_line_color = self.program.uniformLocation("edge_color")
         self.program.release()
 
 
@@ -103,7 +110,7 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
         for key, value in self._dentsvertsdata.items():
             if self.is_visible_geo(key):
                 GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
-                self.program.setUniformValue(self.shader_edge_color, self.polygonWFColor)
+                self.program.setUniformValue(self.shader_line_color,self._line_color)
                 value.drawvao(self.glf)
 
     def resizeGL(self, w: int, h: int):

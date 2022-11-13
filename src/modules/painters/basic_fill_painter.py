@@ -1,6 +1,6 @@
 from enum import Enum
 from PySide6.QtCore import Slot
-from PySide6.QtGui import QVector4D,QVector3D
+from PySide6.QtGui import QVector4D,QVector3D,QColor
 from PySide6.QtOpenGL import QOpenGLShaderProgram, QOpenGLShader
 from painters import Painter
 from dir_basic_painter.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f, VertDataCollectorCoord3fColor4f
@@ -10,13 +10,13 @@ from core import Geometry, geometry_manager
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox,QColorDialog
 from PySide6.QtGui import QActionGroup,QAction
 import time
 from typing import List,Dict
 import uuid
 from dir_basic_painter.basic_painter_base import BasicPainterGeometryBase
-
+key_show_face = 'show_face'
 class BasicFillPainter(BasicPainterGeometryBase):
     def __init__(self):
         """
@@ -24,10 +24,16 @@ class BasicFillPainter(BasicPainterGeometryBase):
         """
         super().__init__()
         self.showBack = True
+        self._geos_fill_preference ={}
 
     @property
     def name(self):
         return "Fill Painter"
+
+    def on_action_set_color(self):
+        super().on_action_set_color()
+        self.on_change_do_process_data()
+        self.requestGLUpdate()
 
     def initializeShaderProgram(self):
         self.program = QOpenGLShaderProgram()
@@ -103,15 +109,18 @@ class BasicFillPainter(BasicPainterGeometryBase):
 
     @Slot()
     def onGeometryCreated(self, geometries:List[Geometry]):
+        self.determine_geos_fill_preference(geometries)
         if self.do_process_data:
             super().onGeometryCreated(geometries)
         self.add_geometry_to_all_geo_dictionary(geometries)
+
 
     @Slot()
     def onGeometryRemoved(self, geometries:List[Geometry]):
         if self.do_process_data:
             super().onGeometryRemoved(geometries)
         self.remove_geometries_from_all_geo_dictionary(geometries)
+        self.remove_items_from_geos_fill_preference(geometries)
 
     def on_change_do_process_data(self):
         if self.do_process_data:
@@ -128,10 +137,25 @@ class BasicFillPainter(BasicPainterGeometryBase):
             self._geoKey2Remove.clear()
         if len(self._geo2Add) > 0:
             for geometry in self._geo2Add:
-                self.delayed_add_geometry_to_gl_data(geometry)
+                if self.get_geo_fill_pref(geometry.guid):
+                    self.delayed_add_geometry_to_gl_data(geometry)
             self._geo2Add.clear()
 
-
+    def get_geo_fill_pref(self, key):
+        return  self._geos_fill_preference.get(key, True)
+    def set_geo_fill_pref(self, key, value):
+        self._geos_fill_preference[key] = bool(value)
+    def determine_geos_fill_preference(self, geometries:List[Geometry]):
+        for g in geometries:
+            use_fill= True
+            try:
+                use_fill= g.attributes[key_show_face]
+            except:
+                pass
+            self.set_geo_fill_pref(g.guid, use_fill)
+    def remove_items_from_geos_fill_preference(self, geometries:List[Geometry]):
+        for g in geometries:
+            self._geos_fill_preference.pop(g.guid)
 
 class DummyPainter(Painter):
     def __init__(self):

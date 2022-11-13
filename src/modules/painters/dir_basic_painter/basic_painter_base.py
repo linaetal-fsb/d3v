@@ -1,6 +1,6 @@
 from enum import Enum
 from PySide6.QtCore import Slot
-from PySide6.QtGui import QVector4D,QVector3D
+from PySide6.QtGui import QVector4D,QVector3D,QColor
 from PySide6.QtOpenGL import QOpenGLShaderProgram, QOpenGLShader
 from painters import Painter
 from dir_basic_painter.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f, VertDataCollectorCoord3fColor4f
@@ -10,7 +10,7 @@ from core import Geometry, geometry_manager
 import openmesh as om
 import numpy as np
 from selinfo import SelectionInfo
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox,QColorDialog
 from PySide6.QtGui import QActionGroup,QAction
 import time
 from typing import List,Dict
@@ -55,7 +55,7 @@ class BasicPainterBase(Painter):
         self.mvMatrixLoc = 0
         # light position
         self.lightPosLoc = 0 # opengl light position
-        self._light_position = QVector3D(0, 0, 10000)  # vector
+        self._light_position = QVector3D(0, 0, 100000)  # vector
         #geometry manager selected/visible changed  events
         geometry_manager.geometry_state_changing.connect(self.onGeometryStateChanging)
         geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
@@ -63,6 +63,7 @@ class BasicPainterBase(Painter):
 
         # Add menu items
         self.initialize_painter_menus()
+        self._color =[0.4, 1.0, 1.0, 1.0]  # default color
 
 
 
@@ -79,13 +80,19 @@ class BasicPainterBase(Painter):
         self._painters_menu.addMenu(self._menu)
 
         self.act_do_process_data = QAction('Use painter', self._menu, checkable=True)
-        self._menu.addAction(self.act_do_process_data)
-        self.act_do_paint = QAction('Show painter', self._menu, checkable=True)
-        self._menu.addAction(self.act_do_paint)
         self.act_do_process_data.triggered.connect(self.on_action_do_process_data)
-        self.act_do_paint.triggered.connect(self.on_action_do_do_paint)
+        self._menu.addAction(self.act_do_process_data)
         self.act_do_process_data.setChecked(True)
+
+        self.act_do_paint = QAction('Show painter', self._menu, checkable=True)
+        self.act_do_paint.triggered.connect(self.on_action_do_do_paint)
+        self._menu.addAction(self.act_do_paint)
         self.act_do_paint.setChecked(True)
+
+        self._menu.addSeparator()
+        self.act_set_color = QAction('Set constant color', self._menu)
+        self.act_set_color.triggered.connect(self.on_action_set_color)
+        self._menu.addAction(self.act_set_color)
 
 
 
@@ -97,6 +104,11 @@ class BasicPainterBase(Painter):
     def on_action_do_do_paint(self):
         self._do_paint = self.act_do_paint.isChecked()
         self.requestGLUpdate()
+
+    def on_action_set_color(self):
+        color = QColor.fromRgbF(self._color[0], self._color[1], self._color[2], self._color[3])
+        color = QColorDialog.getColor(color)
+        self._color = [color.redF(), color.greenF(), color.blueF(), color.alphaF()]
 
     @property
     def do_process_data(self):
@@ -407,7 +419,7 @@ class BasicPainterBase(Painter):
             ar_vertex_colors = mesh.vertex_colors()
             cstype = 2
         else:
-            c = [0.4, 1.0, 1.0, 1.0]  # default color
+            c = self._color  # default color
 
         # normals data
         if not mesh.has_face_normals():  # normals are necessary for correct lighting effect
@@ -492,7 +504,8 @@ class BasicPainterBase(Painter):
             ar_vertex_colors = mesh.vertex_colors()
             cstype = 2
         else:
-            c = [0.4, 1.0, 1.0, 1.0]  # default color
+            c = self._color  # default color
+            #c = [0.4, 1.0, 1.0, 1.0]  # default color
 
         # normals data
         if not mesh.has_face_normals():  # normals are necessary for correct lighting effect
