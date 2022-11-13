@@ -3,8 +3,8 @@ from PySide6.QtCore import Slot
 from PySide6.QtGui import QVector4D,QVector3D,QColor
 from PySide6.QtOpenGL import QOpenGLShaderProgram, QOpenGLShader
 from painters import Painter
-from dir_basic_painter.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f, VertDataCollectorCoord3fColor4f
-from dir_basic_painter.glhelp import GLEntityType, GLHelpFun, GLDataType
+from a_basicpainter.glvertdatasforhaders import VertDataCollectorCoord3fNormal3fColor4f, VertDataCollectorCoord3fColor4f
+from a_basicpainter.glhelp import GLEntityType, GLHelpFun, GLDataType
 from OpenGL import GL
 from core import Geometry, geometry_manager
 import openmesh as om
@@ -15,7 +15,7 @@ from PySide6.QtGui import QActionGroup,QAction
 import time
 from typing import List,Dict
 import uuid
-from dir_basic_painter.basic_painter_base import BasicPainterGeometryBase
+from a_basicpainter.basic_painter_base import BasicPainterGeometryBase
 key_show_face = 'show_face'
 class BasicFillPainter(BasicPainterGeometryBase):
     def __init__(self):
