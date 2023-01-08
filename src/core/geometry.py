@@ -68,3 +68,13 @@ class Geometry(QObject):
             print ("Selected geometry: {}".format(self.guid))
             print("Selected facet: {}".format(si.face))
             print("Intersection point distance: {}".format(si.distance))
+
+    def flattened(self):
+        flattened = []
+        if self.sub_geometry:
+            for s in self.sub_geometry:
+                flattened += s.flatenned()
+            return flattened
+        else:
+            flattened.append(self)
+            return flattened
