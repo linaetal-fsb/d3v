@@ -70,7 +70,7 @@ class Geometry(QObject):
         self._subgeometry = geometry
 
     def mesh_empty(self):
-        return self.mesh.vertices_empty() and self.mesh.edges_empty() and self.mesh.faces_empty()
+        return self._mesh.vertices_empty() and self._mesh.edges_empty() and self._mesh.faces_empty()
 
     def onSelected(self, si):
         if __debug__:
