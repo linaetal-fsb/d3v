@@ -61,12 +61,12 @@ class Geometry(QObject):
 
     @property
     def sub_geometry(self):
-        assert bool(self._subgeometry) == False or self.mesh_emty() == True
+        assert bool(self._subgeometry) == False or self.mesh_empty() == True
         return self._subgeometry
 
     @sub_geometry.setter
     def sub_geometry(self, geometry):
-        assert geometry == False or self.mesh_emty() == True
+        assert geometry == False or self.mesh_empty() == True
         self._subgeometry = geometry
 
     def mesh_empty(self):
@@ -82,7 +82,7 @@ class Geometry(QObject):
         flattened = []
         if self.sub_geometry:
             for s in self.sub_geometry:
-                flattened += s.flatenned()
+                flattened += s.flattened()
             return flattened
         else:
             flattened.append(self)
