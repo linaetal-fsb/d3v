@@ -36,7 +36,7 @@ class __geometry_manager(QObject):
                                           self.selected_geometry)
         g2a = set(flattened)
         self.__loaded_geometry |= g2a
-        self.geometry_created.emit(list(flattened))
+        self.geometry_created.emit(geometry_2_add)
         self.visible_geometry_changed.emit(self.visible_geometry,
                                            self.loaded_geometry,
                                            self.selected_geometry)
@@ -48,7 +48,7 @@ class __geometry_manager(QObject):
                                           self.selected_geometry)
         self.__loaded_geometry = set(self.__loaded_geometry) - set(flattened)
         to_emit = list(flattened - self.__loaded_geometry)
-        self.geometry_removed.emit(to_emit)
+        self.geometry_removed.emit(geometry_2_remove)
         self.visible_geometry_changed.emit(self.visible_geometry,
                                            self.loaded_geometry,
                                            self.selected_geometry)
