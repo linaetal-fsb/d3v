@@ -20,6 +20,8 @@ class IOHandler(Command):
             return geometry
         except Exception as err:
             QMessageBox.warning(None, "Error", "Problem loading '{}': {}".format(fileName, err))
+            if __debug__:
+                raise
 
     def do_import_geometry(self, file_name):
         return []
