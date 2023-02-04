@@ -13,7 +13,7 @@ from selinfo import SelectionInfo
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox,QColorDialog
 from PySide6.QtGui import QActionGroup,QAction
 import time
-from typing import List,Dict
+from typing import List,Dict,Set
 import uuid
 
 class SelModes(Enum):
@@ -555,9 +555,12 @@ class BasicPainterBase(Painter):
                 fv_indices_to_draw_all_vertices = fv_indices[existing_triangles]
                 fv_indices_to_draw = fv_indices_to_draw_all_vertices[:, [0, corner_idx, corner_idx + 1]]
                 face_normals_to_draw = face_normals[existing_triangles]
+                if face_colors is not None:
+                    face_colors_to_draw = face_colors[existing_triangles]
             else:
                 fv_indices_to_draw = fv_indices
                 face_normals_to_draw = face_normals
+                face_colors_to_draw = face_colors
 
             fv_indices_flattened = fv_indices_to_draw.flatten()
             n_all_vertices += len(fv_indices_flattened)
@@ -571,7 +574,7 @@ class BasicPainterBase(Painter):
             if cstype == 0:
                 colorData = self.createConstantColorData(c, n_faces)
             elif cstype == 1:
-                colorData = self.createFaceColorData(face_colors)
+                colorData = self.createFaceColorData(face_colors_to_draw)
             elif cstype == 2:
                 colorData = self.createVertexColorData(vertex_colors, fv_indices_flattened)
 
@@ -586,7 +589,7 @@ class BasicPainterBase(Painter):
                 if cstype == 0:
                     reversed_colors = colorData
                 elif cstype == 1:
-                    reversed_colors = self.createFaceColorData(face_colors[::-1])
+                    reversed_colors = self.createFaceColorData(face_colors_to_draw[::-1])
                 elif cstype == 2:
                     reversed_colors = self.createVertexColorData(vertex_colors, fv_indices_flattened_reversed)
 
@@ -648,9 +651,7 @@ class BasicPainterGeometryBase(BasicPainterBase):
         self._dgeos = {}  # dictionary that holds existing geometries
         self._geo2Add:List[Geometry] = []
         self._geoKey2Remove:List[Geometry] = []
-
-        geometry_manager.geometry_created.connect(self.onGeometryCreated)
-        geometry_manager.geometry_removed.connect(self.onGeometryRemoved)
+        self.__loaded_before_change:Set[Geometry] =set()
 
 
     def remove_geometry_item(self, key):
@@ -661,13 +662,41 @@ class BasicPainterGeometryBase(BasicPainterBase):
         self._dgeos[geometry.guid] = geometry
 
     @Slot()
+    def onGeometryStateChanging(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
+        super(BasicPainterGeometryBase, self).onGeometryStateChanging(visible,loaded,selected)
+        self.__loaded_before_change = set(loaded)
+
+    @Slot()
+    def onVisibleGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
+        super(BasicPainterGeometryBase, self).onVisibleGeometryChanged(visible,loaded,selected)
+        # add new geos
+        geo_to_add = set(loaded)-self.__loaded_before_change
+        if len(geo_to_add)>0:
+            self.process_geometries_added(list(geo_to_add))
+        geo_to_remove = self.__loaded_before_change - set(loaded)
+        if len(geo_to_remove) > 0:
+            self.process_geometries_removed(list(geo_to_remove))
+
+    def process_geometries_added(self,geometries:List[Geometry]):
+        self._geo2Add.extend(geometries)
+        self.requestGLUpdate()
+
+    def process_geometries_removed(self,geometries:List[Geometry]):
+        keys = []
+        for g in geometries:
+            keys.append(g.guid)
+        self._geoKey2Remove.extend(keys)
+        self.requestGLUpdate()
+
     def onGeometryCreated(self, geometries:List[Geometry]):
         self._geo2Add.extend(geometries)
         self.requestGLUpdate()
 
-    @Slot()
     def onGeometryRemoved(self, geometries:List[Geometry]):
-        self._geoKey2Remove.extend(list(geometries.keys()))
+        keys= []
+        for g in geometries:
+            keys.append(g.guid)
+        self._geoKey2Remove.extend(keys)
         self.requestGLUpdate()
 
     def delayed_add_geometry_to_gl_data(self, geometry: Geometry):

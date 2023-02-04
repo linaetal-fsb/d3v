@@ -105,22 +105,20 @@ class BasicFillPainter(BasicPainterGeometryBase):
 
     @Slot()
     def onGeometryStateChanging(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
-        pass
+        super(BasicFillPainter, self).onGeometryStateChanging(visible,loaded,selected)
 
-    @Slot()
-    def onGeometryCreated(self, geometries:List[Geometry]):
+    def process_geometries_added(self, geometries: List[Geometry]):
         self.determine_geos_fill_preference(geometries)
         if self.do_process_data:
-            super().onGeometryCreated(geometries)
+            super().process_geometries_added(geometries)
         self.add_geometry_to_all_geo_dictionary(geometries)
 
-
-    @Slot()
-    def onGeometryRemoved(self, geometries:List[Geometry]):
+    def process_geometries_removed(self, geometries: List[Geometry]):
         if self.do_process_data:
-            super().onGeometryRemoved(geometries)
+            super().process_geometries_removed(geometries)
         self.remove_geometries_from_all_geo_dictionary(geometries)
         self.remove_items_from_geos_fill_preference(geometries)
+
 
     def on_change_do_process_data(self):
         if self.do_process_data:
