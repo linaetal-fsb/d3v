@@ -140,21 +140,21 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
 
     # Painter methods implementation code ********************************************************
 
-    @Slot()
-    def onGeometryCreated(self, geometries:List[Geometry]):
+
+    def process_geometries_added(self, geometries:List[Geometry]):
         if self.do_process_data:
-            super().onGeometryCreated(geometries)
+            super().process_geometries_added(geometries)
         self.add_geometry_to_all_geo_dictionary(geometries)
 
-    @Slot()
-    def onGeometryRemoved(self, geometries:List[Geometry]):
+
+    def process_geometries_removed(self, geometries:List[Geometry]):
         if self.do_process_data:
-            super().onGeometryRemoved(geometries)
+            super().process_geometries_removed(geometries)
         self.remove_geometries_from_all_geo_dictionary(geometries)
 
     @Slot()
     def onGeometryStateChanging(self, visible: List[Geometry], loaded: List[Geometry], selected: List[Geometry]):
-        pass
+        super(BasicEdgesPainter, self).onGeometryStateChanging(visible,loaded,selected)
 
     def delayed_add_geometry_to_gl_data(self, geometry: Geometry):
         key = geometry.guid
@@ -231,7 +231,7 @@ class BasicEdgesPainter(BasicPainterGeometryBase):
 
         n_corners_max = len(fv_indices[0])
 
-        faces_drawn = np.zeros(len(fv_indices), dtype=np.bool)
+        faces_drawn = np.zeros(len(fv_indices), dtype=np.bool_)
         corner_idx_array = range(2, n_corners_max)[::-1]
         line_indices = []
         for corner_idx in corner_idx_array:

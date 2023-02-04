@@ -158,11 +158,12 @@ class BasicSelectionPainter(BasicPainterGeometryBase):
     @Slot()
     def onSelectedInfoChanged(self, si: SelectionInfo):
         self._last_obtained_si = si
+
     @Slot()
-    def onGeometryCreated(self, geometries:List[Geometry]):
+    def process_geometries_added(self, geometries:List[Geometry]):
         self.add_geometry_to_all_geo_dictionary(geometries)
     @Slot()
-    def onGeometryRemoved(self, geometries:List[Geometry]):
+    def process_geometries_removed(self, geometries:List[Geometry]):
         self.remove_geometries_from_all_geo_dictionary(geometries)
 
     def update_selected_geo_guids(self,selected:List[Geometry]):

@@ -6,22 +6,39 @@ from selection import Selector
 import time
 from PySide6.QtCore import Slot
 from selectorbasic.subdivboxtree import SubDivBoxTree
-from core import geometry_manager
+from core import geometry_manager,Geometry
 
+from typing import List,Dict,Set
 
 class BasicSelector(Selector):
     def __init__(self):
         super().__init__()
         self.subDivBoxTrees = {}
-        geometry_manager.geometry_created.connect(self.onGeometryCreated)
-        geometry_manager.geometry_removed.connect(self.onGeometryRemoved)
+        # geometry manager selected/visible changed  events
+        geometry_manager.geometry_state_changing.connect(self.onGeometryStateChanging)
+        geometry_manager.visible_geometry_changed.connect(self.onVisibleGeometryChanged)
+        self.__loaded_before_change: Set[Geometry] = set()
 
     @Slot()
+    def onGeometryStateChanging(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
+        self.__loaded_before_change = set(loaded)
+
+    @Slot()
+    def onVisibleGeometryChanged(self, visible:List[Geometry], loaded:List[Geometry], selected:List[Geometry]):
+        # add new geos
+        geo_to_add = set(loaded)-self.__loaded_before_change
+        if len(geo_to_add)>0:
+            self.onGeometryCreated(list(geo_to_add))
+        geo_to_remove = self.__loaded_before_change - set(loaded)
+        if len(geo_to_remove) > 0:
+            self.onGeometryRemoved(list(geo_to_remove))
+
+
     def onGeometryCreated(self, geometries):
         for g in geometries:
             self.addGeometry(g)
 
-    @Slot()
+
     def onGeometryRemoved(self, geometries):
         for g in geometries:
             self.removeGeometry(g)

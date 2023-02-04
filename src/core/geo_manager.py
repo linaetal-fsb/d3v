@@ -47,7 +47,9 @@ class __geometry_manager(QObject):
                                           self.loaded_geometry,
                                           self.selected_geometry)
         self.__loaded_geometry = set(self.__loaded_geometry) - set(flattened)
-        to_emit = list(flattened - self.__loaded_geometry)
+        self.__visible_geometry = set(self.__visible_geometry) - set(flattened) #pp
+        self.__selected_geometry = set(self.__selected_geometry) - set(flattened)  #pp
+        #to_emit = list(flattened - self.__loaded_geometry)  #ppcomment
         self.geometry_removed.emit(geometry_2_remove)
         self.visible_geometry_changed.emit(self.visible_geometry,
                                            self.loaded_geometry,
